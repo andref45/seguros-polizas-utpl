@@ -1,0 +1,30 @@
+{
+  "name": "seguros-polizas-backend",
+  "version": "1.0.0",
+  "description": "Backend del Sistema de Gestión de Pólizas de Seguros - UTPL",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "seguros",
+    "polizas",
+    "utpl",
+    "supabase"
+  ],
+  "author": "UTPL - Equipo de Desarrollo",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@supabase/supabase-js": "^2.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express-validator": "^7.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}
