@@ -14,9 +14,6 @@ Sistema académico desarrollado como proyecto universitario que implementa la ge
 - **Alex Fernando Aguirre Rojas**
 
 **Universidad:** Universidad Técnica Particular de Loja (UTPL)  
-**Carrera:** Ingeniería en Software  
-**Proyecto:** Arquitectura de Software - Sprint 1 (50% funcionalidad)
-
 ## Arquitectura del Sistema
 
 ### Patrón Arquitectónico Principal
