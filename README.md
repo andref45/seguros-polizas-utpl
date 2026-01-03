@@ -17,7 +17,7 @@ Sistema académico desarrollado como proyecto universitario que implementa la ge
 **Carrera:** Ingeniería en Software  
 **Proyecto:** Arquitectura de Software - Sprint 1 (50% funcionalidad)
 
-##Arquitectura del Sistema
+## Arquitectura del Sistema
 
 ### Patrón Arquitectónico Principal
 **Arquitectura por Capas (Layered Architecture)** con **Supabase Auth**
@@ -63,7 +63,7 @@ Sistema académico desarrollado como proyecto universitario que implementa la ge
 - Vercel (despliegue frontend)
 - Render (despliegue backend)
 
-##Autenticación con Supabase Auth
+## Autenticación con Supabase Auth
 
 Este proyecto usa **Supabase Auth nativo**, NO JWT personalizado:
 
@@ -209,7 +209,7 @@ npm run dev
 - Gestión de beneficiarios
 - Panel administrativo
 
-##Reglas de Negocio Principales
+## Reglas de Negocio Principales
 
 1. **Vigencia de Pólizas:** Validez de 1 año desde contratación
 2. **Pagos Mensuales:** Vencimiento día 5 de cada mes
@@ -233,7 +233,7 @@ Activo en todas las tablas
 Los usuarios solo ven sus propios datos  
 auth.uid() valida automáticamente  
 
-##Testing
+## Testing
 
 ### Datos de Prueba
 
@@ -243,7 +243,7 @@ Tipos de pólizas disponibles:
 - Premium: $75/mes - Cobertura $200,000
 - Familiar: $90/mes - Cobertura $150,000
 
-##Contribuir
+## Contribuir
 
 ### Flujo de Trabajo Git
 
