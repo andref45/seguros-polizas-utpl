@@ -2,13 +2,13 @@
 
 Sistema web para la gestión integral de pólizas de seguros de vida para empleados y estudiantes de la Universidad Técnica Particular de Loja (UTPL).
 
-## 📋 Descripción del Proyecto
+##Descripción del Proyecto
 
 Sistema académico desarrollado como proyecto universitario que implementa la gestión completa del ciclo de vida de pólizas de seguros, incluyendo registro de usuarios, contratación de pólizas, gestión de pagos con cálculo de coaseguro, reporte de siniestros con evidencias adjuntas y generación de reportes estadísticos.
 
 ### Equipo de Desarrollo
 
-- **Orly André Flores Valdivieso**
+- **Orly André Flores Valdiviezo**
 - **Jean Daniel Villavicencio Samaniego**
 - **Sebastian Felipe Mendieta Lima**
 - **Alex Fernando Aguirre Rojas**
@@ -17,7 +17,7 @@ Sistema académico desarrollado como proyecto universitario que implementa la ge
 **Carrera:** Ingeniería en Software  
 **Proyecto:** Arquitectura de Software - Sprint 1 (50% funcionalidad)
 
-## 🏗️ Arquitectura del Sistema
+##Arquitectura del Sistema
 
 ### Patrón Arquitectónico Principal
 **Arquitectura por Capas (Layered Architecture)** con **Supabase Auth**
@@ -63,16 +63,16 @@ Sistema académico desarrollado como proyecto universitario que implementa la ge
 - Vercel (despliegue frontend)
 - Render (despliegue backend)
 
-## 🔐 Autenticación con Supabase Auth
+##Autenticación con Supabase Auth
 
 Este proyecto usa **Supabase Auth nativo**, NO JWT personalizado:
 
 ### Ventajas:
-✅ Row Level Security (RLS) funciona automáticamente  
-✅ No necesitas gestionar tokens manualmente  
-✅ Sesiones persistentes automáticas  
-✅ Seguridad incorporada  
-✅ Sin necesidad de bcrypt o jsonwebtoken  
+Row Level Security (RLS) funciona automáticamente  
+No necesitas gestionar tokens manualmente  
+Sesiones persistentes automáticas  
+Seguridad incorporada  
+Sin necesidad de bcrypt o jsonwebtoken  
 
 ### Flujo de Autenticación:
 1. **Registro:** `supabase.auth.signUp()` → Crea usuario en auth.users
@@ -87,7 +87,7 @@ El backend **NO maneja autenticación**, solo:
 - Ejecuta lógica de negocio
 - Realiza operaciones en base de datos usando service_role (cuando sea necesario)
 
-## 📦 Estructura del Monorepo
+##Estructura del Monorepo
 
 ```
 seguros-polizas-utpl/
@@ -126,7 +126,7 @@ seguros-polizas-utpl/
 └── README.md
 ```
 
-## 🚀 Instalación y Configuración
+##Instalación y Configuración
 
 ### 1. Clonar el Repositorio
 
@@ -163,7 +163,7 @@ PAGO_DIA_VENCIMIENTO=5
 POLIZA_VIGENCIA_DIAS=365
 ```
 
-**⚠️ IMPORTANTE:** Ya NO necesitas JWT_SECRET
+**IMPORTANTE:** Ya NO necesitas JWT_SECRET
 
 ### 3. Instalar Dependencias
 
@@ -177,9 +177,9 @@ npm run install:all
 npm run dev
 ```
 
-## 📱 Funcionalidades - Sprint 1 (50%)
+## Funcionalidades - Sprint 1 (50%)
 
-### ✅ Implementadas en Sprint 1
+### Implementadas en Sprint 1
 
 #### 1. Autenticación (Supabase Auth)
 - Login de empleados/estudiantes
@@ -209,7 +209,7 @@ npm run dev
 - Gestión de beneficiarios
 - Panel administrativo
 
-## 🔒 Reglas de Negocio Principales
+##Reglas de Negocio Principales
 
 1. **Vigencia de Pólizas:** Validez de 1 año desde contratación
 2. **Pagos Mensuales:** Vencimiento día 5 de cada mes
@@ -217,7 +217,7 @@ npm run dev
 4. **Siniestros:** Solo reportables con póliza activa
 5. **Estados de Pago:** Pendiente → Pagado (flujo unidireccional)
 
-## 🗄️ Esquema de Base de Datos
+##Esquema de Base de Datos
 
 ### Tablas Principales:
 - `auth.users` - Usuarios Supabase Auth (gestionada por Supabase)
@@ -229,11 +229,11 @@ npm run dev
 - `siniestros` - Reportes de siniestros
 
 ### Row Level Security (RLS):
-✅ Activo en todas las tablas  
-✅ Los usuarios solo ven sus propios datos  
-✅ auth.uid() valida automáticamente  
+Activo en todas las tablas  
+Los usuarios solo ven sus propios datos  
+auth.uid() valida automáticamente  
 
-## 🧪 Testing
+##Testing
 
 ### Datos de Prueba
 
@@ -243,7 +243,7 @@ Tipos de pólizas disponibles:
 - Premium: $75/mes - Cobertura $200,000
 - Familiar: $90/mes - Cobertura $150,000
 
-## 🤝 Contribuir
+##Contribuir
 
 ### Flujo de Trabajo Git
 
