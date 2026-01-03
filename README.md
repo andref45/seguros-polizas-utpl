@@ -2,7 +2,7 @@
 
 Sistema web para la gestión integral de pólizas de seguros de vida para empleados y estudiantes de la Universidad Técnica Particular de Loja (UTPL).
 
-##Descripción del Proyecto
+## Descripción del Proyecto
 
 Sistema académico desarrollado como proyecto universitario que implementa la gestión completa del ciclo de vida de pólizas de seguros, incluyendo registro de usuarios, contratación de pólizas, gestión de pagos con cálculo de coaseguro, reporte de siniestros con evidencias adjuntas y generación de reportes estadísticos.
 
