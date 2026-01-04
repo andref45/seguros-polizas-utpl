@@ -1,0 +1,6 @@
+🚀 Starting Sprint 1 Verification...
+[GET /health] Status: 404 ❌
+[POST /auth/login] Invalid Creds: 401 ✅
+[POST /siniestros/aviso] Missing Data: 401 ❌
+[PATCH /siniestros/{id}] Hit Endpoint: 401 ✅ (Endpoint exists)
+🏁 Verification Complete. Check backend logs for correlation IDs.

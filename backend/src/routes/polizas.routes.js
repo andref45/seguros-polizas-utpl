@@ -25,4 +25,7 @@ router.put('/:id/cancelar', PolizaController.cancelarPoliza)
 // Verificar vigencia de póliza
 router.get('/:id/vigencia', PolizaController.verificarVigencia)
 
+// Obtener beneficiarios de una póliza
+router.get('/:id/beneficiarios', PolizaController.getBeneficiarios)
+
 export default router

@@ -1,4 +1,5 @@
 import PolizaService from '../services/PolizaService.js'
+import supabase from '../config/supabase.config.js'
 
 class PolizaController {
   static async getTiposPoliza(req, res, next) {
@@ -112,6 +113,23 @@ class PolizaController {
           vigente
         }
       })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  static async getBeneficiarios(req, res, next) {
+    try {
+      const { id } = req.params
+      // Idealmente mover a Service/DAO, pero por MVP "implementalo ahora":
+      const { data, error } = await supabase
+        .from('beneficiarios')
+        .select('*')
+        .eq('poliza_id', id)
+
+      if (error) throw error
+
+      res.status(200).json({ success: true, data })
     } catch (error) {
       next(error)
     }

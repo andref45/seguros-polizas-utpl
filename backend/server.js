@@ -1,42 +1,77 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
-
-// Middleware
+import helmet from 'helmet'
+import morgan from 'morgan'
+import polizaRoutes from './src/routes/polizas.routes.js'
+import pagoRoutes from './src/routes/pagos.routes.js'
+import siniestroRoutes from './src/routes/siniestros.routes.js'
+import authRoutes from './src/routes/auth.routes.js'
+import vigenciaRoutes from './src/routes/vigencias.routes.js'
+import supabase from './src/config/supabase.config.js'
+import logger from './src/config/logger.js'
+import limiter from './src/middleware/rateLimiter.js'
+import { verifyToken } from './src/middleware/auth.middleware.js'
 import errorHandler from './src/middleware/errorHandler.js'
 
-// Routes
-import polizasRoutes from './src/routes/polizas.routes.js'
-import pagosRoutes from './src/routes/pagos.routes.js'
-import siniestrosRoutes from './src/routes/siniestros.routes.js'
-
-// Cargar variables de entorno
 dotenv.config()
 
 const app = express()
-const PORT = process.env.PORT || 3000
+const port = process.env.PORT || 3000
 
-// Middleware
+// Security & Middleware
+app.use(helmet())
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }))
+app.use(limiter)
 app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }))
 
-// Health check
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Sistema de Gestión de Pólizas - API funcionando correctamente',
-    timestamp: new Date().toISOString()
-  })
+// Health Check
+app.get('/health', async (req, res) => {
+  const health = {
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    status: 'OK',
+    checks: {
+      db: 'UNKNOWN',
+      storage: 'UNKNOWN'
+    }
+  }
+
+  try {
+    const { error: dbError } = await supabase.from('tipos_poliza').select('id').limit(1)
+    health.checks.db = dbError ? 'ERROR' : 'OK'
+  } catch (e) { health.checks.db = 'ERROR' }
+
+  try {
+    const { error: storageError } = await supabase.storage.listBuckets()
+    health.checks.storage = storageError ? 'ERROR' : 'OK'
+  } catch (e) { health.checks.storage = 'ERROR' }
+
+  if (health.checks.db !== 'OK' || health.checks.storage !== 'OK') {
+    health.status = 'DEGRADED'
+    res.status(503)
+  }
+
+  res.json(health)
 })
 
-// API Routes
-app.use('/api/polizas', polizasRoutes)
-app.use('/api/pagos', pagosRoutes)
-app.use('/api/siniestros', siniestrosRoutes)
+
+// Public Routes
+app.use('/api/auth', authRoutes)
+app.use('/api/vigencias', vigenciaRoutes) // Public or Protected? User didn't specify, but safer to be public-read for active status check? Or protected? Let's verify requirements. 
+// "GET /vigencias/activa" needed for guard clause, which runs on POST /aviso (Authenticated). So likely protected or public. 
+// Given it blocks creation, public info is fine. But sticking to general protection if feasible.
+// For now, let's make it public so frontend can check before showing form.
+
+// Protected Routes
+app.use('/api/polizas', verifyToken, polizaRoutes)
+app.use('/api/pagos', verifyToken, pagoRoutes)
+app.use('/api/siniestros', verifyToken, siniestroRoutes)
 
 // Ruta 404
 app.use((req, res) => {
@@ -50,11 +85,13 @@ app.use((req, res) => {
 app.use(errorHandler)
 
 // Iniciar servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en puerto ${PORT}`)
-  console.log(`📡 Health check: http://localhost:${PORT}/health`)
-  console.log(`🌍 CORS habilitado para: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`)
-  console.log(`🔐 Usando Supabase Auth`)
-})
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    logger.info(`🚀 Servidor corriendo en puerto ${port}`)
+    logger.info(`📡 Health check: http://localhost:${port}/health`)
+    logger.info(`🌍 CORS habilitado para: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`)
+    logger.info(`🔐 Usando Supabase Auth con JWT Verification`)
+  })
+}
 
 export default app

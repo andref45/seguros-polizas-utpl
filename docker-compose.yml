@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: seguros-backend
+    ports:
+      - "3005:3000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - PORT=3000
+      - CORS_ORIGIN=http://localhost:8085
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:3005/api
+    container_name: seguros-frontend
+    ports:
+      - "8085:80"
+    depends_on:
+      - backend
+    restart: always

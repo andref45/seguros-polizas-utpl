@@ -1,16 +1,26 @@
-import express from 'express'
+import { Router } from 'express'
+import multer from 'multer'
 import SiniestroController from '../controllers/SiniestroController.js'
-import authMiddleware from '../middleware/authMiddleware.js'
+import { verifyToken, requireRole } from '../middleware/auth.middleware.js'
 
-const router = express.Router()
+const router = Router()
 
-// Todas las rutas requieren autenticación
-router.use(authMiddleware)
+// Configurar Multer (Memoria para calcular Hash antes de subir)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB Limit
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype === 'application/pdf') {
+            cb(null, true)
+        } else {
+            cb(new Error('Solo PDFs son permitidos'))
+        }
+    }
+})
 
-// Placeholder routes para Sprint 2
-router.get('/mis-siniestros', SiniestroController.getMisSiniestros)
-router.get('/:id', SiniestroController.getSiniestroById)
-router.post('/registrar', SiniestroController.registrarSiniestro)
-router.put('/:id/estado', SiniestroController.actualizarEstado)
+// Rutas
+router.post('/aviso', verifyToken, SiniestroController.registrarAviso)
+router.post('/:id/docs', verifyToken, upload.single('file'), SiniestroController.subirDocumento)
+router.patch('/:id', verifyToken, requireRole('admin'), SiniestroController.actualizarEstado) // Solo Admin cambia estado manualmente por ahora
 
 export default router

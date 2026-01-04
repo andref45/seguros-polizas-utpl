@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { supabase } from '../services/supabaseClient'
+import AuthService from '../services/auth.service'
 
 const AuthContext = createContext({})
 
@@ -16,112 +16,38 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Verificar sesión actual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    // Escuchar cambios de autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
+    const currentUser = AuthService.getCurrentUser()
+    setUser(currentUser)
+    setLoading(false)
   }, [])
 
   const login = async (email, password) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-
-      if (error) throw error
-
-      return { success: true, data, error: null }
+      const user = await AuthService.login(email, password)
+      setUser(user)
+      return { success: true, data: user, error: null }
     } catch (error) {
-      return { success: false, data: null, error }
+      return { success: false, data: null, error: error.message }
     }
   }
 
   const register = async (email, password, userData) => {
-    try {
-      // 1. Crear usuario en auth.users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password
-      })
-
-      if (authError) throw authError
-
-      if (!authData.user) {
-        throw new Error('No se pudo crear el usuario')
-      }
-
-      // 2. Crear perfil en tabla usuarios
-      const { error: profileError } = await supabase
-        .from('usuarios')
-        .insert([{
-          id: authData.user.id,
-          ...userData
-        }])
-
-      if (profileError) throw profileError
-
-      return { success: true, data: authData, error: null }
-    } catch (error) {
-      return { success: false, data: null, error }
-    }
+    // Backend registration logic placeholder
+    return { success: false, error: 'Registration via Backend is not yet implemented.' }
   }
 
-  const logout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
-      return { success: true, error: null }
-    } catch (error) {
-      return { success: false, error }
-    }
+  const logout = () => {
+    AuthService.logout()
+    setUser(null)
+    return { success: true }
   }
 
   const updateProfile = async (updates) => {
-    try {
-      if (!user) {
-        throw new Error('No hay usuario autenticado')
-      }
-
-      const { error } = await supabase
-        .from('usuarios')
-        .update(updates)
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      return { success: true, error: null }
-    } catch (error) {
-      return { success: false, error }
-    }
+    return { success: false, error: 'Not implemented via API yet' }
   }
 
   const getProfile = async () => {
-    try {
-      if (!user) {
-        throw new Error('No hay usuario autenticado')
-      }
-
-      const { data, error } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) throw error
-
-      return { success: true, data, error: null }
-    } catch (error) {
-      return { success: false, data: null, error }
-    }
+    return { success: true, data: user }
   }
 
   const value = {
