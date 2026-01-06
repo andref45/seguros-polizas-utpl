@@ -3,26 +3,18 @@ class FinancialService {
 
     /**
      * Calcula los montos correspondientes al empleado y a la institución
-     * basado en la regla de copago.
+     * basado en la configuración de copago dinámica.
      * @param {number} montoTotal - El monto total del pago.
-     * @param {string} regla - Regla de copago (ej. '70/30', '65/35', '100/0').
+     * @param {Object} config - Objeto de configuración { porcentaje_empleado, porcentaje_institucion }.
      * @returns {Object} { montoEmpleado, montoInstitucion }
      */
-    static calculateCopago(montoTotal, regla) {
+    static calculateCopago(montoTotal, config) {
         let porcentajeInstitucion = 0;
         let porcentajeEmpleado = 100;
 
-        // Parsear la regla "Institución/Empleado"
-        // Ej: '70/30' -> Inst: 70%, Emp: 30%
-        if (regla && regla.includes('/')) {
-            const partes = regla.split('/');
-            if (partes.length === 2) {
-                porcentajeInstitucion = parseFloat(partes[0]);
-                porcentajeEmpleado = parseFloat(partes[1]);
-            }
-        } else if (regla === '100/0') {
-            porcentajeInstitucion = 100;
-            porcentajeEmpleado = 0;
+        if (config) {
+            porcentajeInstitucion = Number(config.porcentaje_institucion) || 0;
+            porcentajeEmpleado = Number(config.porcentaje_empleado) || 0;
         }
 
         const montoInstitucion = (montoTotal * porcentajeInstitucion) / 100;

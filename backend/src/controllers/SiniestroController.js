@@ -5,6 +5,8 @@ import supabase from '../config/supabase.config.js'
 import crypto from 'crypto'
 import logger from '../config/logger.js'
 
+
+
 class SiniestroController {
 
   // Paso 1: Aviso de Siniestro

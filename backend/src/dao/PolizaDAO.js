@@ -4,7 +4,7 @@ class PolizaDAO {
   static async findAll() {
     const { data, error } = await supabase
       .from('polizas')
-      .select('*, tipos_poliza(*), usuarios(*)')
+      .select('*, tipos_poliza(*), usuarios(*), copagos_config(*)')
       .order('created_at', { ascending: false })
 
     if (error) throw error
@@ -14,7 +14,7 @@ class PolizaDAO {
   static async findById(id) {
     const { data, error } = await supabase
       .from('polizas')
-      .select('*, tipos_poliza(*), usuarios(*)')
+      .select('*, tipos_poliza(*), usuarios(*), copagos_config(*)')
       .eq('id', id)
       .single()
 

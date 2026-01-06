@@ -1,4 +1,6 @@
 import PagoService from '../services/PagoService.js'
+import PolizaDAO from '../dao/PolizaDAO.js'
+import FinancialService from '../services/FinancialService.js'
 
 class PagoController {
   static async getMisPagos(req, res, next) {
@@ -72,9 +74,26 @@ class PagoController {
         })
       }
 
+      // 1. Obtener Póliza y Configuración de Copago
+      const poliza = await PolizaDAO.findById(poliza_id)
+      if (!poliza) {
+        return res.status(404).json({ success: false, error: 'Póliza no encontrada' })
+      }
+
+      // 2. Calcular Copago Dinámico
+      const copagoConfig = poliza.copagos_config
+      const { montoEmpleado, montoInstitucion } = FinancialService.calculateCopago(Number(monto), copagoConfig)
+
+      // 3. Determinar Temporalidad (Regla día 15)
+      const isExtemporaneo = FinancialService.isExtemporaneous(new Date())
+      const estado_temporalidad = isExtemporaneo ? 'EXTEMPORANEO' : 'ORDINARIO'
+
       const pagoData = {
         poliza_id,
         monto: Number(monto),
+        monto_empleado: montoEmpleado,
+        monto_institucion: montoInstitucion,
+        estado_temporalidad,
         mes_periodo: Number(mes_periodo),
         anio_periodo: Number(anio_periodo)
       }
