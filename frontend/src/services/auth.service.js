@@ -12,6 +12,20 @@ const AuthService = {
         throw new Error(response.data.error || 'Login failed')
     },
 
+    async register(email, password, userData) {
+        try {
+            const response = await api.post('/auth/register', {
+                email,
+                password,
+                ...userData
+            })
+            return response.data
+        } catch (error) {
+            console.error('Registration failed service', error)
+            throw error.response?.data?.error || 'Registration failed'
+        }
+    },
+
     logout() {
         localStorage.removeItem('token')
         localStorage.removeItem('user')

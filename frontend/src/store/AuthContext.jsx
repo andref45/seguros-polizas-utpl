@@ -32,8 +32,12 @@ export const AuthProvider = ({ children }) => {
   }
 
   const register = async (email, password, userData) => {
-    // Backend registration logic placeholder
-    return { success: false, error: 'Registration via Backend is not yet implemented.' }
+    try {
+      const data = await AuthService.register(email, password, userData)
+      return { success: true, data }
+    } catch (error) {
+      return { success: false, error: error.message || error }
+    }
   }
 
   const logout = () => {

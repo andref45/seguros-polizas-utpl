@@ -113,6 +113,71 @@ class AuthController {
             res.status(500).json({ success: false, error: e.message })
         }
     }
+
+    static async register(req, res) {
+        try {
+            const { email, password, nombres, apellidos, cedula, tipo_usuario, fecha_nacimiento, telefono, direccion } = req.body
+
+            if (!email || !password || !nombres || !apellidos || !cedula || !tipo_usuario) {
+                return res.status(400).json({ success: false, error: 'Todos los campos obligatorios son requeridos.' })
+            }
+
+            // 1. Crear usuario en Auth (Supabase)
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { role: tipo_usuario } // Guardar rol en metadata
+                }
+            })
+
+            if (authError) {
+                return res.status(400).json({ success: false, error: `Error Auth: ${authError.message}` })
+            }
+
+            if (!authData.user) {
+                return res.status(500).json({ success: false, error: 'No se pudo crear el usuario en Auth.' })
+            }
+
+            // 2. Insertar perfil en tabla 'usuarios'
+            const { error: profileError } = await supabase
+                .from('usuarios')
+                .insert({
+                    id: authData.user.id, // VINCULACIÓN CLAVE
+                    cedula,
+                    nombres,
+                    apellidos,
+                    telefono,
+                    tipo_usuario,
+                    fecha_nacimiento: fecha_nacimiento || '2000-01-01', // Fallback si no viene
+                    direccion,
+                    estado: 'activo'
+                })
+
+            if (profileError) {
+                // Opcional: Borrar el usuario de Auth si falla el perfil (Rollback manual)
+                // await supabase.auth.admin.deleteUser(authData.user.id)
+                logger.error('Error creando perfil de usuario', profileError)
+                return res.status(500).json({ success: false, error: `Error creando perfil: ${profileError.message}` })
+            }
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    id: authData.user.id,
+                    email: authData.user.email,
+                    nombres,
+                    apellidos,
+                    role: tipo_usuario
+                },
+                message: 'Usuario registrado exitosamente'
+            })
+
+        } catch (error) {
+            logger.error('Error register', error)
+            res.status(500).json({ success: false, error: error.message })
+        }
+    }
 }
 
 export default AuthController
