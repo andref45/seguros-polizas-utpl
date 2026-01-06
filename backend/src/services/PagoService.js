@@ -1,6 +1,7 @@
 import PagoDAO from '../dao/PagoDAO.js'
 import PolizaDAO from '../dao/PolizaDAO.js'
 import BusinessRules from './BusinessRules.js'
+import FinancialService from './FinancialService.js'
 
 class PagoService {
   static async getMisPagos(usuarioId) {
@@ -10,6 +11,11 @@ class PagoService {
   static async getPagosPendientes(usuarioId) {
     return await PagoDAO.findPendientesByUsuarioId(usuarioId)
   }
+
+  static async getAllPagos() {
+    return await PagoDAO.findAllWithDetails()
+  }
+
 
   static async getPagosByPoliza(polizaId, usuarioId) {
     const poliza = await PolizaDAO.findById(polizaId)
@@ -60,10 +66,24 @@ class PagoService {
       throw new Error(`El monto debe ser igual a la prima mensual: $${poliza.prima_mensual}`)
     }
 
+    // Calcular Copagos (Financial Service)
+    const { montoEmpleado, montoInstitucion } = FinancialService.calculateCopago(
+      monto,
+      poliza.tipo_copago || '100/0' // Fallback si no tiene tipo definido
+    )
+
+    // Verificar Extemporaneidad
+    const esExtemporaneo = FinancialService.isExtemporaneous(new Date())
+    const estadoTemporalidad = esExtemporaneo ? 'EXTEMPORANEO' : 'ORDINARIO'
+
     // Crear el pago
     const nuevoPago = {
       poliza_id,
-      monto,
+      monto, // Total
+      monto_empleado: montoEmpleado,
+      monto_institucion: montoInstitucion,
+      regla_copago: poliza.tipo_copago || '100/0',
+      estado_temporalidad: estadoTemporalidad,
       fecha_pago: new Date().toISOString(),
       estado: BusinessRules.ESTADOS_PAGO.PAGADO,
       mes_periodo,

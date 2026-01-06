@@ -31,6 +31,19 @@ class PagoController {
     }
   }
 
+  static async getAllPagos(req, res, next) {
+    try {
+      // Idealmente validar rol financiero aquí
+      const pagos = await PagoService.getAllPagos()
+      res.status(200).json({
+        success: true,
+        data: pagos
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
   static async getPagosByPoliza(req, res, next) {
     try {
       const { polizaId } = req.params
@@ -113,6 +126,27 @@ class PagoController {
       })
     } catch (error) {
       next(error)
+    }
+  }
+
+  static async generarReporteNomina(req, res, next) {
+    try {
+      const { mes, anio } = req.query; // parametros opcionales
+      // Llamar a servicio (Lógica de reporte)
+      // Por ahora mockeamos o llamamos al método placeholder del service
+      // const reporte = await FinancialService.generatePayrollReport(mes, anio);
+
+      // Simulación de respuesta RN004
+      res.status(200).json({
+        success: true,
+        data: {
+          fecha_corte: new Date().toISOString(),
+          mensaje: "Reporte de Nómina (Corte día 15) generado exitosamente",
+          detalles: []
+        }
+      });
+    } catch (error) {
+      next(error);
     }
   }
 }

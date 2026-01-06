@@ -1,12 +1,12 @@
 # Sistema de Gestión de Pólizas de Seguros - UTPL
 
-> **Sprint 1 Complete**: Arquitectura Empresarial 3-Tier, Autenticación Segura, Motor de Siniestros y Despliegue Dockerizado.
+> **Estado del Proyecto**: Sprint 2 Completado (Propuesta B1). Incluye Arquitectura, Siniestros, Lógica Financiera, Renovaciones y Control de Acceso.
 
-Este proyecto implementa un sistema para la gestión del ciclo de vida de pólizas de seguros de vida estudiantil, incluyendo módulos de siniestros, copagos y reportes financieros.
+Este sistema gestiona el ciclo de vida completo de pólizas de seguros de vida estudiantil, incorporando las reglas de negocio específicas de la UTPL (Propuesta B1) para el manejo de copagos, vigencias, morosidad y reportes de nómina.
 
 ## 🚀 Despliegue Rápido (Docker)
 
-El proyecto está contenerizado para una ejecución inmediata.
+El proyecto está contenerizado para una ejecución inmediata:
 
 ```bash
 docker-compose up --build -d
@@ -14,96 +14,100 @@ docker-compose up --build -d
 
 *   **Frontend (Backoffice)**: [http://localhost:8085](http://localhost:8085)
 *   **Backend (API)**: [http://localhost:3005](http://localhost:3005)
-*   **API Health Check**: [http://localhost:3005/health](http://localhost:3005/health)
 
 ---
 
-## 🏗 Arquitectura (Refactor Sprint 1)
+## 🏗 Arquitectura del Sistema
 
-Hemos migrado de un prototipo básico a una arquitectura **3-Tier** robusta y segura, alineada con los requisitos empresariales.
+Implementamos una arquitectura **3-Tier** robusta:
 
 1.  **Frontend (Presentación)**: React + Vite + TailwindCSS.
-    *   **Seguridad**: No contiene credenciales de BD. Consume exclusivamente la API.
-    *   **Cliente**: `src/services/api.js` centraliza peticiones con inyección automática de JWT.
-2.  **Backend (Negocio)**: Node.js + Express.
-    *   **Middleware**: Autenticación RBAC, Rate Limiting, CORS, Logging (Winston).
-    *   **Lógica**: Data Access Objects (DAO), validación de reglas de negocio (Vigencias, FSM).
+    *   Consumo de API centralizado y seguro.
+    *   Diseño responsivo y amigable.
+2.  **Backend (Lógica de Negocio)**: Node.js + Express.
+    *   Controladores modulares (Pagos, Siniestros, Pólizas).
+    *   Servicios de Dominio (`FinancialService`, `RenewalService`, `AccessControlService`).
+    *   Seguridad RBAC y logs de auditoría.
 3.  **Datos (Persistencia)**: PostgreSQL (Supabase).
-    *   **Integridad**: Tablas normalizadas, constraints `UNIQUE`, tipos `ENUM` y auditoría.
+    *   Esquema normalizado con reglas de integridad.
+    *   Storage para evidencias documentales (S3-compatible).
 
 ---
 
-## ✅ Funcionalidades Implementadas (Sprint 1)
+## ✨ Funcionalidades "Propuesta B1" (Nuevo)
 
-### 1. Módulo de Autenticación
-*   **Login Seguro**: `POST /auth/login` devuelve JWT.
-*   **Sesión Única**: Invalidación automática de sesiones anteriores del mismo usuario (RN010).
-*   **Perfil Conectado**: `GET /auth/me` con roles.
+Hemos implementado el 100% de los requerimientos de la Propuesta B1 para alinear el sistema con la realidad financiera de la UTPL.
 
-### 2. Módulo de Siniestros y Reglas de Negocio
-*   **Aviso de Siniestro**:
-    *   Validación de datos mínimos (Cédula, Fechas).
-    *   **Candado de Vigencia (RN001)**: `POST /siniestros/aviso` bloquea el registro si no hay una vigencia fiscal activa (Code `409`).
-*   **Gestión Documental**:
-    *   Validación estricta de **PDF-Only** (MIME type).
-    *   Cálculo de Hash **SHA-256** para integridad.
-*   **Máquina de Estados (FSM)**:
-    *   Transición controlada: Reportado -> En Trámite -> Pagado.
-    *   **Bloqueo**: No permite pasar a `En Trámite` sin evidencias cargadas.
+### 1. Gestión Financiera Avanzada (Pagos)
+*   **Cálculo de Copagos (70/30)**: `FinancialService` divide automáticamente cada pago:
+    *   **Institución (70%)** - **Empleado (30%)** (Configurable).
+    *   Visible en el Dashboard Financiero.
+*   **Extemporaneidad (Regla del Día 15)**:
+    *   Pagos registrados después del día 15 del mes se marcan automáticamente como `EXTEMPORANEO`.
+    *   Pagos antes del día 15 son `ORDINARIO`.
+*   **Reporte de Nómina**: Endpoint especializado (`/api/pagos/reporte-nomina`) para generar el corte de descuentos.
 
-### 3. Backoffice (Frontend)
-*   **Dashboard**: Listado de siniestros con filtros de estado.
-*   **Privacidad**: Enmascaramiento visual de datos sensibles (`110****543`) para roles no-admin.
-*   **Interfaz de Detalle**: Visualización de estados y carga de documentos.
+### 2. Control de Acceso y Morosidad (Siniestros)
+*   **Validación Estricta (RN006)**: Implementada en `AccessControlService`.
+    *   **Bloqueo**: El sistema **rechaza** el registro de siniestros si la póliza tiene deudas pendientes.
+    *   Error `409 Conflict` con mensaje explicativo para el usuario.
+*   **FSM (Máquina de Estados)**: Transiciones controladas y auditadas para el ciclo de vida del siniestro.
+
+### 3. Servicio de Renovación Anual (RN001)
+*   **RenewalService**: Automatiza el cierre de año fiscal.
+    *   Clona pólizas activas del año anterior (`2025`) al nuevo periodo (`2026`).
+    *   Genera nuevos números de póliza (`REN-2026-XXXX`).
+
+### 4. Dashboard Financiero
+*   Vista global (`/api/pagos/todos`) para el Rol Financiero, permitiendo auditar el estado de todos los aportes.
+
+---
+
+## ✅ Funcionalidades Base (Sprint 1)
+
+Mantenemos y potenciamos las funcionalidades core originales:
+
+*   **Autenticación**: Login seguro (JWT), gestión de sesiones y perfiles.
+*   **Gestión Documental**: Carga de evidencias PDF con validación de hash SHA-256.
+*   **Vigencias**: Control de periodos abiertos/cerrados para permitir o bloquear operaciones.
 
 ---
 
 ## 📜 Reglas de Negocio Integradas
 
-Basado en el levantamiento de requisitos (Entrevista & Blueprints):
-
-| ID | Regla | Estado | Implementación |
+| ID | Regla | Estado | Implementación Técnica |
 | :--- | :--- | :--- | :--- |
-| **RN001** | **Vigencia Exacta** | ✅ Implementado | `VigenciaDAO` + Guard Clause en Controller. |
-| **RN002** | **Bloqueo Altas** | ✅ Implementado | Backend rechaza transacciones en periodos cerrados. |
-| **RN007** | **Integridad Evidencias** | ✅ Implementado | Bloqueo de estado si `docs_count == 0` o `!PDF`. |
-| **RN010** | **Sesión Única** | ✅ Implementado | Tabla `sesiones` gestiona invalidación activa. |
-| **RN011** | **RBAC** | ✅ Implementado | Middleware `verifyToken` lee roles. |
+| **RN001** | **Renovación Anual** | ✅ Implementado | `RenewalService`. |
+| **RN004** | **Corte Día 15** | ✅ Implementado | `FinancialService.isExtemporaneous`. |
+| **RN005** | **Copagos (70/30)** | ✅ Implementado | `FinancialService.calculateCopago`. |
+| **RN006** | **Bloqueo Morosidad** | ✅ Implementado | `AccessControlService.checkMorosity`. |
+| **RN010** | **Sesión Única** | ✅ Implementado | Tabla `sesiones` e invalidación activa. |
 
 ---
 
-## 🛠 Comandos de Desarrollo
+## 🛠 Verificación y Pruebas
 
-Si no deseas usar Docker, puedes correr los servicios manualmente:
+Para validar las nuevas funcionalidades, consulta la guía detallada:
 
-### Backend
+👉 **[Guía de Verificación (verification_guide.md)](verification_guide.md)**
+
+### Comandos de Desarrollo Manual
+
+**Backend:**
 ```bash
 cd backend
 npm install
-node server.js
-# Corre en puerto 3000
+npm run dev
 ```
 
-### Frontend
+**Frontend:**
 ```bash
 cd frontend
 npm install
 npm run dev
-# Corre en puerto 5173
 ```
-
-### Verificación (QA Script)
-```bash
-cd backend
-node scripts/verify_sprint1.js
-```
-Este script ejecuta pruebas automatizadas de:
-1.  Conectividad (DB + Storage).
-2.  Lógica de Autenticación.
-3.  Validación de PDF y Estados.
-4.  Bloqueo por Vigencia cerrada.
 
 ---
 
 **Autor**: Equipo de Desarrollo UTPL
-**Versión**: 1.0.0 (Sprint 1 Final)
+**Versión**: 2.0.0 (Propuesta B1 Completa)

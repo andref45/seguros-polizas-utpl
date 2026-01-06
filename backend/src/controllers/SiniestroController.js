@@ -1,5 +1,6 @@
 import SiniestroDAO from '../dao/SiniestroDAO.js'
 import VigenciaDAO from '../dao/VigenciaDAO.js'
+import AccessControlService from '../services/AccessControlService.js'
 import supabase from '../config/supabase.config.js'
 import crypto from 'crypto'
 import logger from '../config/logger.js'
@@ -30,7 +31,17 @@ class SiniestroController {
         logger.info(`Registro de Siniestro bajo Caso Comercial (Vigencia ignorada) por usuario ${req.user?.id}`)
       }
 
-      // 3. Verificar duplicados (Constraint en DB lo atrapa, pero podemos chequear antes si queremos mensaje custom)
+      // 3. Validación Estricta: Morosidad (RN006)
+      const accessCheck = await AccessControlService.checkMorosity(poliza_id)
+      if (!accessCheck.allowed) {
+        return res.status(409).json({
+          success: false,
+          error: accessCheck.reason,
+          code: 'BLOQUEO_MOROSIDAD'
+        })
+      }
+
+      // 4. Verificar duplicados (Constraint en DB lo atrapa, pero podemos chequear antes si queremos mensaje custom)
       // Dejamos que DB maneje la constraint UNIQUE(cedula_fallecido, fecha_defuncion)
 
       const siniestroData = {

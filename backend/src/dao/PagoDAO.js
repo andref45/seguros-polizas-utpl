@@ -101,6 +101,29 @@ class PagoDAO {
     if (error && error.code !== 'PGRST116') throw error
     return data
   }
+
+  static async findDeudasByPolizaId(polizaId) {
+    const hoy = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('*')
+      .eq('poliza_id', polizaId)
+      .lt('fecha_vencimiento', hoy)
+      .neq('estado', 'pagado')
+
+    if (error) throw error
+    return data
+  }
+
+  static async findAllWithDetails() {
+    const { data, error } = await supabase
+      .from('pagos')
+      .select('*, polizas(numero_poliza, usuarios(nombres, apellidos, cedula)), documentos_financieros(*)')
+      .order('fecha_pago', { ascending: false })
+
+    if (error) throw error
+    return data
+  }
 }
 
 export default PagoDAO
