@@ -178,6 +178,41 @@ class AuthController {
             res.status(500).json({ success: false, error: error.message })
         }
     }
+    static async updateProfile(req, res) {
+        try {
+            const userId = req.user.id
+            const { nombres, apellidos, telefono, direccion, fecha_nacimiento } = req.body
+
+            // Update user profile in DB
+            const { data, error } = await supabase
+                .from('usuarios')
+                .update({
+                    nombres,
+                    apellidos,
+                    telefono,
+                    direccion,
+                    fecha_nacimiento
+                })
+                .eq('id', userId)
+                .select()
+                .single()
+
+            if (error) {
+                logger.error(`Error updating profile for user ${userId}`, error)
+                return res.status(500).json({ success: false, error: 'Error al actualizar el perfil' })
+            }
+
+            res.json({
+                success: true,
+                data,
+                message: 'Perfil actualizado exitosamente'
+            })
+
+        } catch (error) {
+            logger.error('Error in updateProfile', error)
+            res.status(500).json({ success: false, error: error.message })
+        }
+    }
 }
 
 export default AuthController

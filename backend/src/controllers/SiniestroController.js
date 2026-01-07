@@ -9,6 +9,22 @@ import logger from '../config/logger.js'
 
 class SiniestroController {
 
+  // Paso 0: Obtener mis siniestros
+  static async getMisSiniestros(req, res) {
+    try {
+      const userId = req.user.id
+      const siniestros = await SiniestroDAO.findByUserId(userId)
+
+      res.status(200).json({
+        success: true,
+        data: siniestros
+      })
+    } catch (error) {
+      logger.error('Error getMisSiniestros', error)
+      res.status(500).json({ success: false, error: error.message })
+    }
+  }
+
   // Paso 1: Aviso de Siniestro
   static async registrarAviso(req, res) {
     try {

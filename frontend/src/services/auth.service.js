@@ -4,8 +4,9 @@ const AuthService = {
     async login(email, password) {
         const response = await api.post('/auth/login', { email, password })
         if (response.data.success) {
-            const { token, user } = response.data.data
+            const { token, refreshToken, user } = response.data.data
             localStorage.setItem('token', token)
+            if (refreshToken) localStorage.setItem('refreshToken', refreshToken)
             localStorage.setItem('user', JSON.stringify(user))
             return user
         }
@@ -28,6 +29,7 @@ const AuthService = {
 
     logout() {
         localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
         // Optional: Call API to invalidate session
         // api.post('/auth/logout').catch(console.error)

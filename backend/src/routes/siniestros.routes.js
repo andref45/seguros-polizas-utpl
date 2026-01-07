@@ -19,6 +19,7 @@ const upload = multer({
 })
 
 // Rutas
+router.get('/mis-siniestros', verifyToken, SiniestroController.getMisSiniestros)
 router.post('/aviso', verifyToken, SiniestroController.registrarAviso)
 router.post('/:id/docs', verifyToken, upload.single('file'), SiniestroController.subirDocumento)
 router.patch('/:id', verifyToken, requireRole('admin'), SiniestroController.actualizarEstado) // Solo Admin cambia estado manualmente por ahora

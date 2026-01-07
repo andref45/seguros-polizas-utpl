@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../services/supabaseClient'
+import api from '../../services/api'
 import { useAuth } from '../../store/AuthContext'
 
 export default function PagoForm({ onSuccess }) {
@@ -21,15 +21,12 @@ export default function PagoForm({ onSuccess }) {
 
   const loadPolizasActivas = async () => {
     try {
-      const { data, error: polizasError } = await supabase
-        .from('polizas')
-        .select('*, tipos_poliza(*)')
-        .eq('usuario_id', user.id)
-        .eq('estado', 'activa')
-
-      if (polizasError) throw polizasError
-
-      setPolizas(data || [])
+      // Usamos el endpoint de mis-polizas y filtramos en cliente o usamos un endpoint específico
+      // Por simplicidad, reusamos /polizas/mis-polizas y filtramos activas
+      const response = await api.get('/polizas/mis-polizas')
+      const polizasData = response.data.data || []
+      const activas = polizasData.filter(p => p.estado === 'activa')
+      setPolizas(activas)
     } catch (err) {
       console.error('Error loading polizas:', err)
       setError('Error al cargar pólizas')
@@ -61,25 +58,12 @@ export default function PagoForm({ onSuccess }) {
     setLoading(true)
 
     try {
-      // Calcular fecha de vencimiento (día 5 del mes siguiente)
-      const fechaVencimiento = new Date(formData.anio_periodo, formData.mes_periodo, 5)
-
-      // Crear pago directamente en Supabase
-      const { data, error: pagoError } = await supabase
-        .from('pagos')
-        .insert([{
-          poliza_id: formData.poliza_id,
-          monto: Number(formData.monto),
-          fecha_pago: new Date().toISOString(),
-          fecha_vencimiento: fechaVencimiento.toISOString(),
-          estado: 'pagado',
-          mes_periodo: Number(formData.mes_periodo),
-          anio_periodo: Number(formData.anio_periodo)
-        }])
-        .select()
-        .single()
-
-      if (pagoError) throw pagoError
+      await api.post('/pagos/registrar', {
+        poliza_id: formData.poliza_id,
+        monto: formData.monto,
+        mes_periodo: formData.mes_periodo,
+        anio_periodo: formData.anio_periodo
+      })
 
       setFormData({
         poliza_id: '',
@@ -91,9 +75,11 @@ export default function PagoForm({ onSuccess }) {
       if (onSuccess) {
         onSuccess()
       }
+      alert('Pago registrado correctamente')
     } catch (err) {
       console.error('Error registrando pago:', err)
-      setError(err.message || 'Error al registrar pago')
+      const msg = err.response?.data?.error || err.message
+      setError(msg || 'Error al registrar pago')
     } finally {
       setLoading(false)
     }

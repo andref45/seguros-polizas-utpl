@@ -5,7 +5,7 @@ class PolizaDAO {
     const { data, error } = await supabase
       .from('polizas')
       .select('*, tipos_poliza(*), usuarios(*), copagos_config(*)')
-      .order('created_at', { ascending: false })
+
 
     if (error) throw error
     return data
@@ -27,7 +27,7 @@ class PolizaDAO {
       .from('polizas')
       .select('*, tipos_poliza(*)')
       .eq('usuario_id', usuarioId)
-      .order('created_at', { ascending: false })
+
 
     if (error) throw error
     return data

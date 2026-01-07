@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../services/supabaseClient'
+import api from '../services/api'
 import PolizaCard from '../components/polizas/PolizaCard'
 import ContratarPolizaModal from '../components/polizas/ContratarPolizaModal'
 
@@ -20,17 +20,12 @@ export default function PolizasPage() {
       setLoading(true)
       setError('')
 
-      const { data, error: tiposError } = await supabase
-        .from('tipos_poliza')
-        .select('*')
-        .order('nombre', { ascending: true })
-
-      if (tiposError) throw tiposError
-
-      setTiposPoliza(data || [])
+      const response = await api.get('/polizas/tipos')
+      // Backend response: { success: true, data: [...] }
+      setTiposPoliza(response.data.data || [])
     } catch (err) {
       console.error('Error loading tipos poliza:', err)
-      setError('Error al cargar tipos de pólizas')
+      setError('Error al cargar tipos de pólizas. Verifique su conexión.')
     } finally {
       setLoading(false)
     }
@@ -42,49 +37,17 @@ export default function PolizasPage() {
 
   const handleConfirmContratar = async (tipoPolizaId) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        throw new Error('No hay sesión activa')
-      }
-
-      // Obtener información del tipo de póliza
-      const tipoPoliza = tiposPoliza.find(t => t.id === tipoPolizaId)
-
-      // Generar número de póliza único (máx 20 caracteres)
-      const year = new Date().getFullYear()
-      const timestamp = Date.now().toString().slice(-6) // Últimos 6 dígitos
-      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
-      const numeroPoliza = `${year}-${timestamp}-${random}` // Formato: 2025-123456-789 (17 chars)
-
-      // Calcular fechas de vigencia
-      const fechaInicio = new Date().toISOString()
-      const fechaFin = new Date()
-      fechaFin.setFullYear(fechaFin.getFullYear() + 1)
-
-      // Crear póliza
-      const { data, error: insertError } = await supabase
-        .from('polizas')
-        .insert([{
-          numero_poliza: numeroPoliza,
-          usuario_id: session.user.id,
-          tipo_poliza_id: tipoPolizaId,
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFin.toISOString(),
-          estado: 'activa',
-          prima_mensual: tipoPoliza.prima_mensual,
-          cobertura_total: tipoPoliza.cobertura_maxima
-        }])
-        .select()
-        .single()
-
-      if (insertError) throw insertError
+      // Llamada al backend para contratar
+      await api.post('/polizas/contratar', { tipo_poliza_id: tipoPolizaId })
 
       setSelectedPoliza(null)
+      alert('¡Póliza contratada exitosamente!')
       navigate('/mis-polizas')
     } catch (err) {
       console.error('Error contratando póliza:', err)
-      alert('Error al contratar póliza: ' + err.message)
+      // Display safer error message if available
+      const msg = err.response?.data?.error || err.message
+      alert('Error al contratar póliza: ' + msg)
     }
   }
 

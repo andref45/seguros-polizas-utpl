@@ -20,6 +20,18 @@ class SiniestroDAO {
             .single()
 
         if (error) throw error
+        if (error) throw error
+        return data
+    }
+
+    static async findByUserId(userId) {
+        const { data, error } = await supabase
+            .from('siniestros')
+            .select('*, polizas!inner(*)')
+            .eq('polizas.usuario_id', userId)
+            .order('fecha_siniestro', { ascending: false })
+
+        if (error) throw error
         return data
     }
 

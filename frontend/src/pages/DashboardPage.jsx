@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
-import { supabase } from '../services/supabaseClient'
+import api from '../services/api'
 import { FaFileContract, FaMoneyBillWave, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa'
 
 export default function DashboardPage() {
@@ -24,53 +24,41 @@ export default function DashboardPage() {
       setLoading(true)
       setError('')
 
-      // Obtener pólizas activas
-      const { data: polizas, error: polizasError } = await supabase
-        .from('polizas')
-        .select('*')
-        .eq('usuario_id', user.id)
-        .eq('estado', 'activa')
+      const [polizasRes, pagosPendientesRes, misPagosRes, siniestrosRes] = await Promise.all([
+        api.get('/polizas/mis-polizas'),
+        api.get('/pagos/pendientes'),
+        api.get('/pagos/mis-pagos'), // Para calcular total pagado
+        api.get('/siniestros/mis-siniestros')
+      ])
 
-      if (polizasError) throw polizasError
+      // 1. Pólizas Activas
+      // Backend devuelve { success: true, data: [...] }
+      const polizas = polizasRes.data.data || []
+      const polizasActivas = polizas.filter(p => p.estado === 'activa')
 
-      // Obtener pagos pendientes
-      const { data: pagosPendientes, error: pagosPendientesError } = await supabase
-        .from('pagos')
-        .select('*, polizas!inner(*)')
-        .eq('polizas.usuario_id', user.id)
-        .eq('estado', 'pendiente')
+      // 2. Pagos Pendientes
+      const pagosPendientes = pagosPendientesRes.data.data || []
 
-      if (pagosPendientesError) throw pagosPendientesError
+      // 3. Total Pagado (sumar pagos con estado 'pagado')
+      const todosPagos = misPagosRes.data.data || []
+      const pagosRealizados = todosPagos.filter(p => p.estado === 'pagado')
+      const totalPagado = pagosRealizados.reduce((sum, pago) => sum + Number(pago.monto || 0), 0)
 
-      // Obtener pagos realizados
-      const { data: pagosRealizados, error: pagosRealizadosError } = await supabase
-        .from('pagos')
-        .select('monto, polizas!inner(*)')
-        .eq('polizas.usuario_id', user.id)
-        .eq('estado', 'pagado')
-
-      if (pagosRealizadosError) throw pagosRealizadosError
-
-      // Obtener siniestros abiertos
-      const { data: siniestros, error: siniestrosError } = await supabase
-        .from('siniestros')
-        .select('*, polizas!inner(*)')
-        .eq('polizas.usuario_id', user.id)
-        .in('estado', ['pendiente', 'en_revision'])
-
-      if (siniestrosError) throw siniestrosError
-
-      const totalPagado = pagosRealizados?.reduce((sum, pago) => sum + Number(pago.monto || 0), 0) || 0
+      // 4. Siniestros Abiertos
+      const siniestros = siniestrosRes.data.data || []
+      // Filtramos los que no estén pagados o finalizados (según estados 'Reportado', 'En_tramite')
+      // Ajustar según los estados reales de tu DB ('Reportado', 'En_tramite', 'Pagado', 'Rechazado' etc)
+      const siniestrosAbiertos = siniestros.filter(s => ['Reportado', 'En_tramite'].includes(s.estado))
 
       setStats({
-        polizasActivas: polizas?.length || 0,
-        pagosPendientes: pagosPendientes?.length || 0,
-        siniestrosAbiertos: siniestros?.length || 0,
+        polizasActivas: polizasActivas.length,
+        pagosPendientes: pagosPendientes.length,
+        siniestrosAbiertos: siniestrosAbiertos.length,
         totalPagado: totalPagado
       })
     } catch (err) {
       console.error('Error loading dashboard:', err)
-      setError('Error al cargar datos del dashboard')
+      setError('Error al cargar datos del dashboard. Verifique su conexión.')
     } finally {
       setLoading(false)
     }

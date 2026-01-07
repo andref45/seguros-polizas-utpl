@@ -80,11 +80,12 @@ class PagoService {
     const nuevoPago = {
       poliza_id,
       monto, // Total
-      monto_empleado: montoEmpleado,
-      monto_institucion: montoInstitucion,
       regla_copago: poliza.tipo_copago || '100/0',
       estado_temporalidad: estadoTemporalidad,
+      monto_empleado: montoEmpleado,
+      monto_institucion: montoInstitucion,
       fecha_pago: new Date().toISOString(),
+      fecha_vencimiento: new Date(anio_periodo, mes_periodo - 1, BusinessRules.PAGO_DIA_VENCIMIENTO).toISOString(),
       estado: BusinessRules.ESTADOS_PAGO.PAGADO,
       mes_periodo,
       anio_periodo

@@ -1,72 +1,79 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import AuthService from '../services/auth.service'
+import api from '../services/api'
 
-const AuthContext = createContext({})
+const AuthContext = createContext()
 
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de AuthProvider')
-  }
-  return context
-}
-
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const currentUser = AuthService.getCurrentUser()
-    setUser(currentUser)
-    setLoading(false)
+    checkUser()
   }, [])
 
-  const login = async (email, password) => {
+  const checkUser = async () => {
     try {
-      const user = await AuthService.login(email, password)
-      setUser(user)
-      return { success: true, data: user, error: null }
+      const storedToken = localStorage.getItem('token')
+      const storedUser = localStorage.getItem('user')
+
+      if (storedToken && storedUser) {
+        setUser(JSON.parse(storedUser))
+
+        // Optional: Verify token validity with backend
+        // try {
+        //   const res = await api.get('/auth/me')
+        //   setUser(res.data.data)
+        // } catch (e) {
+        //   logout()
+        // }
+      }
     } catch (error) {
-      return { success: false, data: null, error: error.message }
+      console.error('Error restoring session:', error)
+      localStorage.clear()
+    } finally {
+      setLoading(false)
     }
   }
 
-  const register = async (email, password, userData) => {
+  const login = async (email, password) => {
     try {
-      const data = await AuthService.register(email, password, userData)
-      return { success: true, data }
+      // STRICT 3-TIER: Call Backend API, not Supabase Direct
+      const response = await api.post('/auth/login', { email, password })
+
+      const { user, token, refreshToken } = response.data.data
+
+      if (!user || !token) throw new Error('Respuesta de login inválida')
+
+      localStorage.setItem('token', token)
+      localStorage.setItem('refreshToken', refreshToken) // If supported
+      localStorage.setItem('user', JSON.stringify(user))
+
+      setUser(user)
+
+      return { success: true }
     } catch (error) {
-      return { success: false, error: error.message || error }
+      console.error('Login error:', error)
+      const msg = error.response?.data?.error || error.message
+      return { success: false, error: msg }
     }
   }
 
   const logout = () => {
-    AuthService.logout()
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('user')
     setUser(null)
-    return { success: true }
-  }
-
-  const updateProfile = async (updates) => {
-    return { success: false, error: 'Not implemented via API yet' }
-  }
-
-  const getProfile = async () => {
-    return { success: true, data: user }
-  }
-
-  const value = {
-    user,
-    loading,
-    login,
-    register,
-    logout,
-    updateProfile,
-    getProfile
+    // Optional: Notify backend
+    // api.post('/auth/logout').catch(() => {}) 
   }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   )
+}
+
+export const useAuth = () => {
+  return useContext(AuthContext)
 }

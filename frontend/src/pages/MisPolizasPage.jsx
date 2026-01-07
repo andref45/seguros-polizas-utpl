@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { supabase } from '../services/supabaseClient'
+import api from '../services/api'
 import { FaFileContract, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa'
 
 export default function MisPolizasPage() {
@@ -18,18 +18,14 @@ export default function MisPolizasPage() {
       setLoading(true)
       setError('')
 
-      const { data, error: polizasError } = await supabase
-        .from('polizas')
-        .select('*, tipos_poliza(*)')
-        .eq('usuario_id', user.id)
-        .order('fecha_contratacion', { ascending: false })
+      const response = await api.get('/polizas/mis-polizas')
+      // Backend: { success: true, data: [...] }
+      const data = response.data.data || []
+      setPolizas(data)
 
-      if (polizasError) throw polizasError
-
-      setPolizas(data || [])
     } catch (err) {
       console.error('Error loading polizas:', err)
-      setError('Error al cargar tus pólizas')
+      setError('Error al cargar tus pólizas. Verifique su conexión.')
     } finally {
       setLoading(false)
     }

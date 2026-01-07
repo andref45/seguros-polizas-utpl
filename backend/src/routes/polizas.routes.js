@@ -1,11 +1,11 @@
 import express from 'express'
 import PolizaController from '../controllers/PolizaController.js'
-import authMiddleware from '../middleware/authMiddleware.js'
+import { verifyToken } from '../middleware/auth.middleware.js'
 
 const router = express.Router()
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware)
+router.use(verifyToken)
 
 // Obtener tipos de pólizas disponibles
 router.get('/tipos', PolizaController.getTiposPoliza)

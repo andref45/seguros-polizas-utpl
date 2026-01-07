@@ -8,10 +8,12 @@ const errorHandler = (err, req, res, next) => {
     method: req.method
   })
 
+  console.error('Unhandled Error:', err) // Force console output
   const statusCode = err.statusCode || 500
   res.status(statusCode).json({
     success: false,
-    error: statusCode === 500 ? 'Internal Server Error' : err.message
+    error: err.message, // Expose message for debugging
+    stack: err.stack // Expose stack for debugging
   })
 }
 

@@ -1,11 +1,11 @@
 import express from 'express'
 import PagoController from '../controllers/PagoController.js'
-import authMiddleware from '../middleware/authMiddleware.js'
+import { verifyToken } from '../middleware/auth.middleware.js'
 
 const router = express.Router()
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware)
+router.use(verifyToken)
 
 // Obtener mis pagos
 router.get('/mis-pagos', PagoController.getMisPagos)

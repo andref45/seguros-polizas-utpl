@@ -22,9 +22,20 @@ const port = process.env.PORT || 3000
 // Security & Middleware
 app.use(helmet())
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    'http://127.0.0.1:5175',
+    'http://127.0.0.1:5176',
+    process.env.CORS_ORIGIN
+  ].filter(Boolean),
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-refresh-token'],
+  credentials: true
 }))
 app.use(limiter)
 app.use(express.json())
@@ -86,8 +97,8 @@ app.use(errorHandler)
 
 // Iniciar servidor
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    logger.info(`🚀 Servidor corriendo en puerto ${port}`)
+  app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`)
     logger.info(`📡 Health check: http://localhost:${port}/health`)
     logger.info(`🌍 CORS habilitado para: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`)
     logger.info(`🔐 Usando Supabase Auth con JWT Verification`)

@@ -12,15 +12,22 @@ export const verifyToken = (req, res, next) => {
         // Requires JWT_SECRET to be set in .env
         const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET
 
+        let decoded;
         if (!secret) {
-            logger.warn('JWT_SECRET is not defined. Skipping signature verification (DEV ONLY).')
-            // In production this should be an error. For now, proceeding if we match a basic structure check
-            // or decoding without verify if strictly necessary for dev without keys.
+            logger.warn('JWT_SECRET is not defined. Using unsafe jwt.decode() (DEV ONLY).')
+            decoded = jwt.decode(token)
+            if (!decoded) throw new Error('Invalid token structure')
+        } else {
+            decoded = jwt.verify(token, secret)
         }
 
-        // For Supabase, the secret is the "JWT Secret" from API settings
-        const decoded = jwt.verify(token, secret)
         req.user = decoded
+        // Supabase JWT uses 'sub' for user ID, but our controllers might expect 'id'
+        if (req.user && !req.user.id && req.user.sub) {
+            req.user.id = req.user.sub
+        }
+
+        console.log('User authenticated:', { id: req.user.id, email: req.user.email, role: req.user.role })
         next()
     } catch (error) {
         logger.error('Token verification failed', { error: error.message })
