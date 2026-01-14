@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken'
 import logger from '../config/logger.js'
+import supabase from '../config/supabase.config.js'
 
-export const verifyToken = (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1]
 
     if (!token) {
@@ -9,29 +10,43 @@ export const verifyToken = (req, res, next) => {
     }
 
     try {
-        // Requires JWT_SECRET to be set in .env
-        const secret = process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET
+        // Verify token using Supabase client
+        const { data: { user }, error } = await supabase.auth.getUser(token)
 
-        let decoded;
-        if (!secret) {
-            logger.warn('JWT_SECRET is not defined. Using unsafe jwt.decode() (DEV ONLY).')
-            decoded = jwt.decode(token)
-            if (!decoded) throw new Error('Invalid token structure')
-        } else {
-            decoded = jwt.verify(token, secret)
+        if (error || !user) {
+            logger.error('Token verification failed', { error: error?.message })
+            return res.status(401).json({ success: false, error: 'Invalid or expired token' })
         }
 
-        req.user = decoded
-        // Supabase JWT uses 'sub' for user ID, but our controllers might expect 'id'
+        // Set user data from Supabase
+        req.user = {
+            id: user.id,
+            email: user.email,
+            sub: user.id,
+            ...user.user_metadata,
+            app_metadata: user.app_metadata
+        }
+
+        // Supabase JWT uses 'sub' for user ID, normalize to 'id' for consistency
         if (req.user && !req.user.id && req.user.sub) {
             req.user.id = req.user.sub
         }
 
-        console.log('User authenticated:', { id: req.user.id, email: req.user.email, role: req.user.role })
+        // Extract role from app_metadata if available (Supabase custom claims)
+        if (req.user.app_metadata?.role) {
+            req.user.role = req.user.app_metadata.role
+        }
+
+        logger.info('User authenticated', {
+            id: req.user.id,
+            email: req.user.email,
+            role: req.user.role || req.user.app_metadata?.role
+        })
+
         next()
     } catch (error) {
         logger.error('Token verification failed', { error: error.message })
-        return res.status(401).json({ success: false, error: 'Invalid token' })
+        return res.status(401).json({ success: false, error: 'Invalid or expired token' })
     }
 }
 
