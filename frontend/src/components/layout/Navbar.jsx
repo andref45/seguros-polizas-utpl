@@ -40,10 +40,12 @@ export default function Navbar() {
                 <span>Dashboard</span>
               </Link>
 
-              <Link to="/polizas" className={navLinkClass('/polizas')}>
-                <FaFileContract />
-                <span>Pólizas</span>
-              </Link>
+              {user?.app_metadata?.role === 'admin' && (
+                <Link to="/polizas" className={navLinkClass('/polizas')}>
+                  <FaFileContract />
+                  <span>Pólizas</span>
+                </Link>
+              )}
 
               <Link to="/mis-polizas" className={navLinkClass('/mis-polizas')}>
                 <FaClipboardList />

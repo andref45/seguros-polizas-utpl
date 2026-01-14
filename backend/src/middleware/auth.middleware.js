@@ -37,14 +37,22 @@ export const verifyToken = (req, res, next) => {
 
 export const requireRole = (role) => {
     return (req, res, next) => {
-        if (!req.user || req.user.role !== role) { // Supabase JWT usually has 'role' or 'app_metadata.role'
-            // Check app_metadata for Supabase roles if needed
-            const userRole = req.user.app_metadata?.role || req.user.role
+        // STRICT CHECK: app_metadata.role for admin, ignore user_metadata for this critical role
+        const appRole = req.user.app_metadata?.role
+        const isServiceRole = req.user.role === 'service_role'
 
-            if (userRole !== role && userRole !== 'service_role') {
-                return res.status(403).json({ success: false, error: 'Insufficient permissions' })
-            }
+        // If we require 'admin', we MUST see it in app_metadata.role
+        if (role === 'admin' && appRole !== 'admin' && !isServiceRole) {
+            logger.warn(`Access denied for user ${req.user.id}. Required 'admin', found '${appRole}'`)
+            return res.status(403).json({ success: false, error: 'Acceso denegado: Se requiere rol de Administrador.' })
         }
+
+        // Fallback for other roles (e.g. 'empleado' might be in user_metadata)
+        // But for this specific 'Nancy' refactor, we are focusing on Admin protection.
+        if (role !== 'admin' && appRole !== role && !isServiceRole) {
+            return res.status(403).json({ success: false, error: 'Insufficient permissions' })
+        }
+        // If all checks pass
         next()
     }
 }

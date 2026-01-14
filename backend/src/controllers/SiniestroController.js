@@ -26,16 +26,48 @@ class SiniestroController {
   }
 
   // Paso 1: Aviso de Siniestro
-  static async registrarAviso(req, res) {
+  static async getAllSiniestros(req, res, next) {
     try {
-      const { cedula_fallecido, fecha_defuncion, causa, nombre_declarante, cedula_declarante, poliza_id, caso_comercial } = req.body
+      // Admin only - fetched via middleware
+      const { data, error } = await supabase
+        .from('siniestros')
+        .select(`
+          *,
+          documentos (*),
+          polizas (
+            id,
+            numero_poliza,
+            usuarios (
+              id,
+              nombres,
+              apellidos,
+              cedula
+            )
+          )
+        `)
+        .order('fecha_reporte', { ascending: false })
+
+      if (error) throw error
+
+      res.status(200).json({
+        success: true,
+        data
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  static async registrarAviso(req, res, next) {
+    try {
+      const { cedula_fallecido, fecha_defuncion, causa, nombre_declarante, cedula_declarante, poliza_id, caso_comercial, monto_reclamo } = req.body
 
       // 1. Validaciones Mínimas
       if (!cedula_fallecido || !fecha_defuncion || !poliza_id) {
         return res.status(400).json({ success: false, error: 'Datos incompletos (Cédula fallecido, Fecha, Póliza)' })
       }
 
-      // 2. Guard Clause: Vigencia Activa
+      // 2. Guard Clause: Vigencia Activa (RN001/002)
       if (!caso_comercial) {
         const vigencia = await VigenciaDAO.findActive()
         if (!vigencia) {
@@ -49,18 +81,22 @@ class SiniestroController {
         logger.info(`Registro de Siniestro bajo Caso Comercial (Vigencia ignorada) por usuario ${req.user?.id}`)
       }
 
-      // 3. Validación Estricta: Morosidad (RN006)
-      const accessCheck = await AccessControlService.checkMorosity(poliza_id)
-      if (!accessCheck.allowed) {
+      // 3. Guard Clause: Morosidad (RN006)
+      // Verificar si el usuario está al día en sus pagos
+      const poliza = await PolizaDAO.findById(poliza_id)
+      if (!poliza) return res.status(404).json({ error: 'Póliza no encontrada' })
+
+      const moroso = await AccessControlService.checkMorosity(poliza.usuario_id)
+      if (moroso) {
         return res.status(409).json({
           success: false,
-          error: accessCheck.reason,
-          code: 'BLOQUEO_MOROSIDAD'
+          error: 'No elegible: Usuario presenta deudas pendientes.',
+          code: 'USUARIO_MOROSO'
         })
       }
 
-      // 4. Verificar duplicados (Constraint en DB lo atrapa, pero podemos chequear antes si queremos mensaje custom)
-      // Dejamos que DB maneje la constraint UNIQUE(cedula_fallecido, fecha_defuncion)
+      // 4. Preparar Datos (Sin 80/20)
+      const montoReclamado = Number(monto_reclamo) || 0
 
       const siniestroData = {
         poliza_id,
@@ -68,51 +104,62 @@ class SiniestroController {
         fecha_defuncion,
         causa,
         descripcion: `Declarado por ${nombre_declarante} (${cedula_declarante})`,
-        monto_reclamado: 0, // Se ajusta luego
+        monto_reclamado: montoReclamado,
+        // monto_coaseguro_20: Eliminado
+        // monto_cobertura_80: Eliminado
         estado: 'Reportado',
-        fecha_siniestro: fecha_defuncion // Asumiendo misma fecha por ahora
+        fecha_siniestro: new Date(), // Fecha de registro del sistema
+        source: 'web' // Intake channel
       }
 
-      const siniestro = await SiniestroDAO.create(siniestroData)
+      // 5. Insertar en BD
+      const { data, error } = await supabase
+        .from('siniestros')
+        .insert([siniestroData])
+        .select()
+        .single()
+
+      if (error) {
+        if (error.code === '23505') { // Unique violation
+          return res.status(409).json({ success: false, error: 'Ya existe un siniestro registrado para esta persona y fecha.' })
+        }
+        throw error
+      }
 
       res.status(201).json({
         success: true,
-        data: { id: siniestro.id, estado: siniestro.estado },
-        message: 'Aviso registrado correctamente. Proceda a subir documentos.'
+        data,
+        message: 'Siniestro reportado exitosamente. Por favor suba los documentos habilitantes.'
       })
 
     } catch (error) {
-      logger.error('Error registrarAviso', error)
-      if (error.code === '23505') { // Unique violation
-        return res.status(409).json({ success: false, error: 'Ya existe un siniestro reportado para esta persona y fecha.' })
-      }
-      res.status(500).json({ success: false, error: error.message })
+      next(error)
     }
   }
 
   // Paso 2: Subida de Documentos
-  static async subirDocumento(req, res) {
-    const { id } = req.params
-    const file = req.file // Multer file
-
-    if (!file) {
-      return res.status(400).json({ success: false, error: 'No se ha subido ningún archivo' })
-    }
-
-    // Validación PDF-Only
-    if (file.mimetype !== 'application/pdf') {
-      return res.status(400).json({ success: false, error: 'Solo se permiten archivos PDF' })
-    }
-
+  static async subirDocumento(req, res, next) {
     try {
-      // Calcular SHA-256 Hash
+      const { id } = req.params
+      const file = req.file
+
+      if (!file) {
+        return res.status(400).json({ success: false, error: 'No se ha proporcionado ningún archivo' })
+      }
+
+      // Validación PDF-Only (Reforzada)
+      if (file.mimetype !== 'application/pdf') {
+        return res.status(400).json({ success: false, error: 'Solo se permiten archivos PDF' })
+      }
+
+      // Calcular SHA-256 Hash para integridad/auditoría
       const hash = crypto.createHash('sha256').update(file.buffer).digest('hex')
 
       // Subir a Supabase Storage
       const fileName = `case-${id}-${Date.now()}.pdf`
       const { data: uploadData, error: uploadError } = await supabase
         .storage
-        .from('pdf-evidencias') // Bucket debe existir
+        .from('pdf-evidencias')
         .upload(fileName, file.buffer, {
           contentType: 'application/pdf',
           upsert: false
@@ -120,74 +167,77 @@ class SiniestroController {
 
       if (uploadError) throw uploadError
 
-      // Obtener URL pública (o firmada)
+      // Generar URL Pública (o firmada según política)
       const { data: { publicUrl } } = supabase
         .storage
         .from('pdf-evidencias')
         .getPublicUrl(fileName)
 
-      // Registrar en DB Documentos
-      const docData = {
+      // Registrar en tabla documentos
+      const { data: docData, error: docError } = await SiniestroDAO.addDocument({
         siniestro_id: id,
-        tipo: req.body.tipo || 'Evidencia General',
+        tipo: 'Habilitante', // Puede ser dinámico
         url: publicUrl,
         hash: hash,
-        estado_doc: 'Pendiente',
-        version: 1
-      }
+        estado_doc: 'Pendiente'
+      })
 
-      const documento = await SiniestroDAO.addDocument(docData)
+      if (docError) throw docError
 
       res.status(201).json({
         success: true,
-        data: documento,
-        message: 'Documento subido y validado exitosamente'
+        data: docData,
+        message: 'Documento subido correctamente'
       })
 
     } catch (error) {
-      logger.error('Error subirDocumento', error)
-      res.status(500).json({ success: false, error: error.message })
+      next(error)
     }
   }
 
-  // Paso 3: Cambio de Estado (FSM Estricta)
-  static async actualizarEstado(req, res) {
+  static async actualizarEstado(req, res, next) {
     try {
       const { id } = req.params
-      const { estado } = req.body
+      const { estado, monto_autorizado, monto_pagado } = req.body // "Nancy" inputs
 
-      const validStates = ['Reportado', 'En_tramite', 'Pagado']
-      if (!validStates.includes(estado)) {
-        return res.status(400).json({ success: false, error: 'Estado inválido' })
-      }
-
-      const siniestro = await SiniestroDAO.findById(id)
-      if (!siniestro) return res.status(404).json({ status: false, error: 'Siniestro no encontrado' })
-
-      // FSM Logic
+      // Validar transición a 'En_tramite' (RN007)
       if (estado === 'En_tramite') {
-        // Solo si estaba en Reportado
-        if (siniestro.estado !== 'Reportado') {
-          return res.status(400).json({ success: false, error: `Transición inválida: de ${siniestro.estado} a ${estado}` })
-        }
+        // Verificar documentos
+        const { count, error } = await supabase
+          .from('documentos')
+          .select('*', { count: 'exact', head: true })
+          .eq('siniestro_id', id)
 
-        // Solo si tiene documentos
-        if (!siniestro.documentos || siniestro.documentos.length === 0) {
-          return res.status(400).json({ success: false, error: 'Bloqueo: Debe subir al menos un documento PDF para tramitar.' })
+        if (error) throw error
+
+        if (count === 0) {
+          return res.status(400).json({
+            success: false,
+            error: 'Bloqueo RN007: No se puede pasar a En Trámite sin documentos adjuntos.'
+          })
         }
       }
 
-      const updated = await SiniestroDAO.update(id, { estado })
+      const updates = { estado }
+      if (monto_autorizado !== undefined) updates.monto_autorizado = monto_autorizado
+      if (monto_pagado !== undefined) updates.monto_pagado = monto_pagado
+
+      const { data, error } = await supabase
+        .from('siniestros')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
 
       res.status(200).json({
         success: true,
-        data: updated,
+        data,
         message: `Estado actualizado a ${estado}`
       })
-
     } catch (error) {
-      logger.error('Error actualizarEstado', error)
-      res.status(500).json({ success: false, error: error.message })
+      next(error)
     }
   }
 }

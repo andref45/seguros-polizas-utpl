@@ -145,13 +145,15 @@ export default function DashboardPage() {
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Acciones Rápidas</h2>
           <div className="space-y-3">
-            <Link
-              to="/polizas"
-              className="block w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
-            >
-              <p className="font-medium text-blue-900">Contratar Nueva Póliza</p>
-              <p className="text-sm text-blue-700">Explora nuestros tipos de pólizas disponibles</p>
-            </Link>
+            {user?.app_metadata?.role === 'admin' && (
+              <Link
+                to="/polizas"
+                className="block w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition"
+              >
+                <p className="font-medium text-blue-900">Gestionar Pólizas</p>
+                <p className="text-sm text-blue-700">Administración de pólizas del sistema</p>
+              </Link>
+            )}
             <Link
               to="/pagos"
               className="block w-full text-left px-4 py-3 bg-green-50 hover:bg-green-100 rounded-lg transition"
