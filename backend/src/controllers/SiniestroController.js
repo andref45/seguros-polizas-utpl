@@ -132,8 +132,7 @@ class SiniestroController {
         tipo: req.body.tipo || 'Evidencia General',
         url: publicUrl,
         hash: hash,
-        estado_doc: 'Pendiente',
-        version: 1
+        estado_doc: 'Pendiente'
       }
 
       const documento = await SiniestroDAO.addDocument(docData)
