@@ -1,4 +1,5 @@
 import PolizaDAO from '../dao/PolizaDAO.js'
+import PolizaRules from '../rules/PolizaRules.js'
 import BusinessRules from './BusinessRules.js'
 
 class PolizaService {
@@ -12,6 +13,20 @@ class PolizaService {
 
   static async getPolizaById(id) {
     return await PolizaDAO.findById(id)
+  }
+
+  // New method: obtenerPorUsuario
+  static async obtenerPorUsuario(usuarioId) {
+    return await PolizaDAO.findByUserId(usuarioId)
+  }
+
+  // New method: crear
+  static async crear(datosPoliza) {
+    // Regla de Negocio: Validar vigencia
+    if (!PolizaRules.validarVigencia(datosPoliza.fecha_inicio, datosPoliza.fecha_fin)) {
+      throw new Error('La fecha de fin debe ser posterior a la fecha de inicio')
+    }
+    return await PolizaDAO.create(datosPoliza)
   }
 
   static async contratarPoliza(usuarioId, tipoPolizaId) {
@@ -39,7 +54,7 @@ class PolizaService {
       fecha_fin: fechaFin.toISOString(),
       estado: BusinessRules.ESTADOS_POLIZA.ACTIVA,
       prima_mensual: tipoPoliza.prima_mensual,
-      cobertura_maxima: tipoPoliza.cobertura_maxima
+      cobertura_total: tipoPoliza.cobertura_maxima
     }
 
     const poliza = await PolizaDAO.create(polizaData)
@@ -88,9 +103,12 @@ class PolizaService {
   }
 
   static generarNumeroPoliza() {
-    const timestamp = Date.now().toString()
+    // Generate shorter ID: POL-YYMM-XXXX (e.g., POL-2601-1234) -> 13 chars
+    const date = new Date()
+    const year = date.getFullYear().toString().substr(-2)
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-    return `POL-${timestamp}-${random}`
+    return `POL-${year}${month}-${random}`
   }
 
   static calcularDiasRestantes(fechaFin) {

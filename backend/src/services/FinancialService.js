@@ -25,12 +25,13 @@ class FinancialService {
             porcentajeEmpleado = 0;
         }
 
-        const montoInstitucion = (montoTotal * porcentajeInstitucion) / 100;
-        const montoEmpleado = (montoTotal * porcentajeEmpleado) / 100;
+        const montoInstitucion = Number(((montoTotal * porcentajeInstitucion) / 100).toFixed(2));
+        // Force the sum to match exactly by calculating the remainder
+        const montoEmpleado = Number((montoTotal - montoInstitucion).toFixed(2));
 
         return {
-            montoInstitucion: Number(montoInstitucion.toFixed(2)),
-            montoEmpleado: Number(montoEmpleado.toFixed(2))
+            montoInstitucion,
+            montoEmpleado
         };
     }
 
