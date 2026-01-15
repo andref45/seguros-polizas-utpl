@@ -14,10 +14,16 @@ class SiniestroController {
   static async getMisSiniestros(req, res) {
     try {
       const userId = req.user.id
-      const siniestros = await SiniestroDAO.findByUserId(userId) // TODO: Check if SiniestroDAO has this method? Or is it misnamed? 
-      // Wait, SiniestroDAO usually has findByUsuarioId too. Let's assume SiniestroDAO is correct for now or check it later.
-      // But the reported error was PolizaDAO.findByUserId.
-      // Let's fix the one we KNOW is broken (line 119).
+      // Retrieve user's cedula to search for claims reported by them
+      const { data: usuario, error: userError } = await supabase
+        .from('usuarios')
+        .select('cedula')
+        .eq('id', userId)
+        .single()
+
+      if (userError) throw userError
+
+      const siniestros = await SiniestroDAO.findByUserIdOrCedula(userId, usuario.cedula)
 
       // Firmar URLs
       for (const s of siniestros) {
@@ -86,7 +92,8 @@ class SiniestroController {
       logger.info(`Admin fetching all siniestros: found ${data?.length || 0} rows`)
 
       // 1. Fetch info de Auth para Emails (Merge manual)
-      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers()
+      const authUsers = authData?.users || []
 
       // Firmar URLs de documentos y anexar Email
       for (const s of data) {
@@ -127,7 +134,7 @@ class SiniestroController {
 
   static async registrarAviso(req, res, next) {
     try {
-      const { cedula_fallecido, fecha_defuncion, causa, caso_comercial } = req.body
+      const { cedula_fallecido, fecha_defuncion, causa, caso_comercial, nombre_declarante, cedula_declarante } = req.body
       let { poliza_id } = req.body
 
       const user = req.user // From middleware
@@ -203,7 +210,9 @@ class SiniestroController {
         monto_reclamado: 0, // El usuario ya no ingresa monto. Se determina administrativamente? O es 0 por defecto.
         estado: 'Reportado',
         fecha_siniestro: new Date(), // Fecha de registro del sistema
-        source: 'web' // Intake channel
+        source: 'web', // Intake channel
+        // nombre_declarante, // REMOVED: Using relation polizas->usuarios instead
+        // cedula_declarante  // REMOVED: Using relation polizas->usuarios instead
       }
 
       // 5. Insertar en BD

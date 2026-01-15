@@ -14,6 +14,9 @@ router.get('/tipos', PolizaController.getTiposPoliza)
 // Obtener mis pólizas - USER allowed
 router.get('/mis-polizas', PolizaController.getMisPolizas)
 
+// Buscar pólizas por cédula - USER allowed (for claims)
+router.get('/buscar', PolizaController.buscarPorCedula)
+
 // Obtener póliza por ID
 router.get('/:id', PolizaController.getPolizaById)
 

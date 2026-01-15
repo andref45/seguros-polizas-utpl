@@ -11,10 +11,10 @@ class VigenciaDAO {
             .eq('estado', 'abierto')
             .lte('fecha_inicio', today)
             .gte('fecha_fin', today)
-            .maybeSingle() // Puede retornar null si no hay
+            .limit(1)
 
         if (error) throw error
-        return data
+        return data?.[0] || null
     }
 
     static async findByYear(year) {

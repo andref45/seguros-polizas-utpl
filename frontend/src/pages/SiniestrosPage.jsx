@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
+import { useAuth } from '../store/AuthContext'
 import { FaPlus, FaList, FaFilePdf, FaExclamationCircle, FaCheckCircle, FaSpinner, FaShieldAlt, FaFileUpload } from 'react-icons/fa'
 
 export default function SiniestrosPage() {
-  const [activeTab, setActiveTab] = useState('reportar') // 'reportar', 'historial'
+  const { user } = useAuth()
+  const isAdmin = user?.email === 'nancy@segurosutpl.edu.ec' || user?.role === 'admin'
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'gestionar' : 'reportar') // 'reportar', 'historial', 'gestionar'
   const [polizas, setPolizas] = useState([])
   const [siniestros, setSiniestros] = useState([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('') // [NEW] Search state
   const [success, setSuccess] = useState('')
 
   // Form State
@@ -23,11 +27,25 @@ export default function SiniestrosPage() {
   const [archivo, setArchivo] = useState(null)
 
   useEffect(() => {
-    loadPolizas()
-    if (activeTab === 'historial') {
+    if (activeTab === 'reportar') {
+      loadPolizas()
+    } else if (activeTab === 'historial') {
       loadSiniestros()
+    } else if (activeTab === 'gestionar' && isAdmin) {
+      loadAllSiniestros()
     }
-  }, [activeTab])
+  }, [activeTab, isAdmin])
+
+  // Auto-fill Declarante info from logged-in user
+  useEffect(() => {
+    if (user && !isAdmin) {
+      setFormData(prev => ({
+        ...prev,
+        nombre_declarante: user.nombres && user.apellidos ? `${user.nombres} ${user.apellidos}` : prev.nombre_declarante,
+        cedula_declarante: user.cedula || prev.cedula_declarante
+      }))
+    }
+  }, [user, isAdmin])
 
   const loadPolizas = async () => {
     try {
@@ -46,6 +64,34 @@ export default function SiniestrosPage() {
       setSiniestros(response.data.data || [])
     } catch (err) {
       console.error('Error cargando siniestros:', err)
+      setError('No se pudieron cargar tus siniestros.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadAllSiniestros = async () => {
+    try {
+      setLoading(true)
+      const response = await api.get('/siniestros/') // Admin route
+      setSiniestros(response.data.data || [])
+    } catch (err) {
+      console.error('Error cargando gestión siniestros:', err)
+      setError('Error cargando todos los siniestros.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEstadoChange = async (id, nuevoEstado) => {
+    if (!confirm(`¿Estás seguro de cambiar el estado a: ${nuevoEstado}?`)) return
+    try {
+      setLoading(true)
+      await api.put(`/siniestros/${id}/estado`, { estado: nuevoEstado })
+      alert('Estado actualizado correctamente')
+      loadAllSiniestros() // Reload
+    } catch (err) {
+      alert('Error actualizando estado: ' + (err.response?.data?.error || err.message))
     } finally {
       setLoading(false)
     }
@@ -131,15 +177,17 @@ export default function SiniestrosPage() {
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200">
-        <button
-          className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'reportar'
-            ? 'border-b-2 border-blue-600 text-blue-600'
-            : 'text-gray-500 hover:text-gray-700'
-            }`}
-          onClick={() => setActiveTab('reportar')}
-        >
-          <FaPlus /> Reportar Siniestro
-        </button>
+        {!isAdmin && (
+          <button
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'reportar'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+              }`}
+            onClick={() => setActiveTab('reportar')}
+          >
+            <FaPlus /> Reportar Siniestro
+          </button>
+        )}
         <button
           className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'historial'
             ? 'border-b-2 border-blue-600 text-blue-600'
@@ -147,8 +195,19 @@ export default function SiniestrosPage() {
             }`}
           onClick={() => setActiveTab('historial')}
         >
-          <FaList /> Mis Reportes
+          <FaList /> {isAdmin ? 'Todos los Reportes (Historial)' : 'Mis Reportes'}
         </button>
+        {isAdmin && (
+          <button
+            className={`flex items-center gap-2 px-6 py-3 font-medium transition-colors ${activeTab === 'gestionar'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+              }`}
+            onClick={() => setActiveTab('gestionar')}
+          >
+            <FaShieldAlt /> Gestionar Reclamaciones
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -171,39 +230,67 @@ export default function SiniestrosPage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              {/* Póliza */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Seleccione Póliza Afectada
-                </label>
-                <select
-                  name="poliza_id"
-                  value={formData.poliza_id}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2 border"
-                >
-                  <option value="">-- Seleccione una póliza --</option>
-                  {polizas.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.numero_poliza} - Imp. ${p.prima_mensual} - {p.estado}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">Solo pólizas activas y al día pueden reportar siniestros.</p>
-              </div>
+              {/* Póliza (Hidden Internal Logic) */}
+              <input type="hidden" name="poliza_id" value={formData.poliza_id} />
 
-              {/* Datos Fallecido */}
-              <div>
+              {/* Datos Fallecido + Verificación */}
+              <div className="col-span-2 md:col-span-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cédula Fallecido</label>
-                <input
-                  type="text"
-                  name="cedula_fallecido"
-                  value={formData.cedula_fallecido}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full rounded-md border-gray-300 p-2 border"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="cedula_fallecido"
+                    value={formData.cedula_fallecido}
+                    onChange={(e) => {
+                      handleInputChange(e)
+                      // Reset verification on change
+                      if (formData.poliza_id) {
+                        setFormData(prev => ({ ...prev, poliza_id: '' }))
+                        // We could also reset a 'verified' state here if we had one separate
+                      }
+                    }}
+                    required
+                    className="flex-1 rounded-md border-gray-300 p-2 border"
+                    placeholder="Ingrese cédula para verificar"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const cedula = formData.cedula_fallecido
+                      if (!cedula) return alert('Ingrese la cédula del fallecido')
+                      try {
+                        setLoading(true)
+                        const res = await api.get(`/polizas/buscar?cedula=${cedula}`)
+                        const encontradas = res.data.data
+                        if (encontradas && encontradas.length > 0) {
+                          // Auto-select first policy securely (Blind)
+                          setFormData(prev => ({ ...prev, poliza_id: encontradas[0].id }))
+                          alert('✅ Cobertura Confirmada: El usuario tiene pólizas vigentes.')
+                        } else {
+                          setFormData(prev => ({ ...prev, poliza_id: '' }))
+                          alert('❌ No se encontraron pólizas activas para esta cédula.')
+                        }
+                      } catch (err) {
+                        alert('Error verificando: ' + (err.response?.data?.error || err.message))
+                      } finally {
+                        setLoading(false)
+                      }
+                    }}
+                    className={`px-4 py-2 rounded-md text-white text-sm font-medium transition-colors
+                      ${formData.poliza_id ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                  >
+                    {formData.poliza_id ? <FaCheckCircle /> : <FaShieldAlt />}
+                  </button>
+                </div>
+                {formData.poliza_id ? (
+                  <p className="text-xs text-green-600 mt-1 font-medium flex items-center gap-1">
+                    <FaCheckCircle /> Cobertura Vigente Identificada
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Debe verificar la cobertura antes de continuar.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Defunción</label>
@@ -231,7 +318,7 @@ export default function SiniestrosPage() {
                 />
               </div>
 
-              {/* Declarante */}
+              {/* Declarante (Auto-filled) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Declarante</label>
                 <input
@@ -240,7 +327,8 @@ export default function SiniestrosPage() {
                   value={formData.nombre_declarante}
                   onChange={handleInputChange}
                   required
-                  className="w-full rounded-md border-gray-300 p-2 border"
+                  readOnly
+                  className="w-full rounded-md border-gray-300 p-2 border bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -251,7 +339,8 @@ export default function SiniestrosPage() {
                   value={formData.cedula_declarante}
                   onChange={handleInputChange}
                   required
-                  className="w-full rounded-md border-gray-300 p-2 border"
+                  readOnly
+                  className="w-full rounded-md border-gray-300 p-2 border bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -350,6 +439,135 @@ export default function SiniestrosPage() {
                         </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab: Gestionar (Admin) */}
+        {activeTab === 'gestionar' && isAdmin && (
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+              <h2 className="text-lg font-semibold text-gray-800">Bandeja de Entrada de Siniestros</h2>
+
+              <div className="flex items-center gap-4 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Buscar por cédula, nombre o ID..."
+                  className="border border-gray-300 rounded-md px-4 py-2 text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <button onClick={loadAllSiniestros} className="text-sm text-blue-600 hover:underline shrink-0">Refrescar</button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-10">
+                <FaSpinner className="animate-spin text-4xl text-blue-500 mx-auto" />
+                <p className="mt-2 text-gray-500">Cargando todos los siniestros...</p>
+              </div>
+            ) : siniestros.length === 0 ? (
+              <div className="text-center py-10 text-gray-500">No hay siniestros reportados.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-slate-800 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Fecha / ID</th>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Declarante</th>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Fallecido / Causa</th>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Estado</th>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Evidencia</th>
+                      <th className="px-4 py-3 text-left text-xs uppercase tracking-wider">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {siniestros
+                      .filter(s => {
+                        const term = searchTerm.toLowerCase()
+                        const declaranteName = `${s.polizas?.usuarios?.nombres || ''} ${s.polizas?.usuarios?.apellidos || ''}`.toLowerCase()
+                        const declaranteCedula = s.polizas?.usuarios?.cedula || ''
+                        const fallecidoCedula = s.cedula_fallecido || ''
+                        const siniestroId = s.numero_siniestro?.toLowerCase() || ''
+
+                        return declaranteName.includes(term) ||
+                          declaranteCedula.includes(term) ||
+                          fallecidoCedula.includes(term) ||
+                          siniestroId.includes(term)
+                      })
+                      .map(s => (
+                        <tr key={s.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                            {new Date(s.fecha_reporte).toLocaleDateString()}<br />
+                            <span className="text-xs text-gray-500">{s.numero_siniestro || 'S/N'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <p className="font-medium">
+                              {s.polizas?.usuarios?.nombres} {s.polizas?.usuarios?.apellidos}
+                            </p>
+                            <p className="text-xs text-gray-500">CI: {s.polizas?.usuarios?.cedula}</p>
+                            <p className="text-xs font-semibold text-blue-700">Cel: {s.polizas?.usuarios?.telefono || 'N/A'}</p>
+                            <p className="text-xs text-gray-400">{s.polizas?.usuarios?.email}</p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <p>Muerte: {new Date(s.fecha_defuncion).toLocaleDateString()}</p>
+                            <p className="text-xs text-gray-500 italic">{s.causa}</p>
+                            <p className="text-xs font-bold text-gray-700">CI Fall: {s.cedula_fallecido}</p>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            ${s.estado === 'Reportado' ? 'bg-blue-100 text-blue-800' :
+                                s.estado === 'En_tramite' ? 'bg-yellow-100 text-yellow-800' :
+                                  s.estado === 'Aprobado' ? 'bg-green-100 text-green-800' :
+                                    'bg-red-100 text-red-800'}`}>
+                              {s.estado}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm">
+                            {s.documentos?.length > 0 ? (
+                              s.documentos.map((d, i) => (
+                                <a key={i} href={d.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline block text-xs mb-1">
+                                  <FaFilePdf className="inline" /> Ver PDF
+                                </a>
+                              ))
+                            ) : <span className="text-gray-400 text-xs">Pendiente</span>}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm space-x-2">
+                            {s.estado === 'Reportado' && (
+                              <>
+                                <button
+                                  onClick={() => handleEstadoChange(s.id, 'En_tramite')}
+                                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Tramitar
+                                </button>
+                              </>
+                            )}
+                            {s.estado === 'En_tramite' && (
+                              <>
+                                <button
+                                  onClick={() => handleEstadoChange(s.id, 'Aprobado')}
+                                  className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Aprobar
+                                </button>
+                                <button
+                                  onClick={() => handleEstadoChange(s.id, 'Rechazado')}
+                                  className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs"
+                                >
+                                  Rechazar
+                                </button>
+                              </>
+                            )}
+                            {s.estado === 'Aprobado' && (
+                              <span className="text-green-600 text-xs font-bold"><FaCheckCircle className="inline" /> Finalizado</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>

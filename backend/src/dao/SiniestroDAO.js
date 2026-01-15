@@ -24,15 +24,53 @@ class SiniestroDAO {
         return data
     }
 
-    static async findByUserId(userId) {
-        const { data, error } = await supabase
+    static async findByUserIdOrCedula(userId, userCedula) {
+        // Find claims where:
+        // 1. User is the policy holder (polizas.usuario_id = userId)
+        // 2. OR User is the reporter (cedula_declarante = userCedula)
+
+        // Note: Using !inner on polizas forces only claims with valid policies, 
+        // but we need to be careful with the OR logic. 
+        // Supabase/PostgREST 'or' syntax: 'column.eq.value,other.eq.other'
+
+        // Since we need to join polizas to check usuario_id, but also check cedula_declarante on the main table...
+        // The embedded resource filter (polizas.usuario_id) combined with top-level OR is tricky in simple SDK.
+        // Easiest way: Select all linked to policies, then filter? No, RLS might block.
+        // Ideally we use the OR syntax on top level columns, but polizas.usuario_id is nested.
+
+        // Let's try explicit OR string including the joined column reference if supported, 
+        // or just fetch by cedula_declarante first, then fetch by policy owner, and merge?
+        // Merging is safer/easier to debug.
+
+        const { data: byOwner, error: err1 } = await supabase
             .from('siniestros')
             .select('*, documentos(*), polizas!inner(*)')
             .eq('polizas.usuario_id', userId)
-            .order('fecha_siniestro', { ascending: false })
 
-        if (error) throw error
-        return data
+        if (err1) throw err1
+
+        let combined = [...byOwner]
+
+        if (userCedula) {
+            const { data: byReporter, error: err2 } = await supabase
+                .from('siniestros')
+                .select('*, documentos(*), polizas(*)') // Left join here is fine
+                .eq('cedula_declarante', userCedula)
+
+            if (err2) throw err2
+
+            // Merge unique
+            byReporter.forEach(s => {
+                if (!combined.find(existing => existing.id === s.id)) {
+                    combined.push(s)
+                }
+            })
+        }
+
+        // Sort desc
+        combined.sort((a, b) => new Date(b.fecha_siniestro) - new Date(a.fecha_siniestro))
+
+        return combined
     }
 
     static async addDocument(docData) {

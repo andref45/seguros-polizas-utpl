@@ -12,6 +12,10 @@ class PolizaService {
     return await PolizaDAO.findByUsuarioId(usuarioId)
   }
 
+  static async buscarPolizasPorCedula(cedula) {
+    return await PolizaDAO.findByCedula(cedula)
+  }
+
   static async getPolizaById(id) {
     return await PolizaDAO.findById(id)
   }

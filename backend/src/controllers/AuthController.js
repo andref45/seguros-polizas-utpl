@@ -22,7 +22,16 @@ class AuthController {
                 return res.json({ success: true, data: { id: userId, ...req.user } })
             }
 
-            res.json({ success: true, data })
+            // Ensure 'role' is returned, prioritizing app_metadata or falling back to db profile
+            const role = req.user.app_metadata?.role || data.tipo_usuario || 'user'
+
+            res.json({
+                success: true,
+                data: {
+                    ...data,
+                    role: role // Critical for frontend RBAC
+                }
+            })
 
         } catch (error) {
             logger.error('Error in getMe', error)

@@ -44,6 +44,23 @@ class PolizaDAO {
     return data
   }
 
+  static async findByCedula(cedula) {
+    // [FIX] Use Service Role Key to bypass RLS (Beneficiaries searching for Deceased's policies)
+    const { createClient } = await import('@supabase/supabase-js')
+    const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const { data, error } = await adminSb
+      .from('polizas')
+      .select('*, tipos_poliza(*), usuarios!inner(*)')
+      .eq('usuarios.cedula', cedula)
+      .eq('estado', 'activa') // Lowercase as per DB Schema Default
+
+    if (error) throw error
+    return data
+  }
+
   static async create(polizaData) {
     // [FIX] Instantiate fresh client to guarantee Service Role Key usage for inserts (Bypass RLS)
     const { createClient } = await import('@supabase/supabase-js')

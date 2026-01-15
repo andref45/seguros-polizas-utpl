@@ -30,6 +30,28 @@ class PolizaController {
     }
   }
 
+  static async buscarPorCedula(req, res, next) {
+    try {
+      const { cedula } = req.query
+
+      if (!cedula) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cédula es requerida'
+        })
+      }
+
+      const polizas = await PolizaService.buscarPolizasPorCedula(cedula)
+
+      res.status(200).json({
+        success: true,
+        data: polizas
+      })
+    } catch (error) {
+      next(error)
+    }
+  }
+
   static async getPolizaById(req, res, next) {
     try {
       const { id } = req.params
