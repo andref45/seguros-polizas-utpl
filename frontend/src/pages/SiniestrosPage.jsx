@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import api from '../services/api'
 import { FaPlus, FaHistory, FaFileUpload, FaFilePdf, FaCheck, FaMoneyBillWave, FaTimes } from 'react-icons/fa'
+import { useAuth } from '../store/AuthContext'
 
 export default function SiniestrosPage() {
+  const { user } = useAuth() // [NEW] Use Auth Context
   const [activeTab, setActiveTab] = useState('list') // 'list' or 'new'
   const [siniestros, setSiniestros] = useState([])
   const [polizas, setPolizas] = useState([])
@@ -35,15 +37,21 @@ export default function SiniestrosPage() {
     try {
       setLoading(true)
 
-      // 1. Try to fetch Admin Data first
-      try {
-        const adminRes = await api.get('/siniestros/todos')
-        setSiniestros(adminRes.data.data)
-        setIsAdmin(true)
-      } catch (e) {
-        // If 403, proceed as User
-        console.error('Admin Fetch Failed:', e.response?.data || e.message)
-        console.log('Not Admin (or error), loading user data...')
+      // 1. Determine Role and Fetch Data
+      if (user?.role === 'admin' || user?.app_metadata?.role === 'admin') {
+        try {
+          const adminRes = await api.get('/siniestros/todos')
+          setSiniestros(adminRes.data.data)
+          setIsAdmin(true)
+        } catch (e) {
+          console.error('Admin Fetch Error:', e)
+          // Fallback if admin fetch fails (unlikely if role is correct)
+          const userRes = await api.get('/siniestros/mis-siniestros')
+          setSiniestros(userRes.data.data)
+          setIsAdmin(false)
+        }
+      } else {
+        // Regular User
         const userRes = await api.get('/siniestros/mis-siniestros')
         setSiniestros(userRes.data.data)
         setIsAdmin(false)
@@ -101,23 +109,20 @@ export default function SiniestrosPage() {
     e.preventDefault()
     setError(null)
 
-    if (!formData.poliza_id) {
-      setError('No tienes una póliza activa para registrar el siniestro.')
-      return
-    }
-
     try {
       setLoading(true)
-      await api.post('/siniestros/aviso', formData)
-      alert('Siniestro registrado exitosamente')
+      // Remove poliza_id and amount from payload. Backend auto-selects.
+      await api.post('/siniestros/aviso', {
+        ...formData,
+        // Override redundant fields to be safe or remove them from state
+        poliza_id: undefined,
+        monto_reclamo: undefined
+      })
+      alert('Siniestro registrado exitosamente. POR FAVOR SUBA LOS DOCUMENTOS REQUERIDOS AHORA.')
       setFormData({
         cedula_fallecido: '',
-        nombre_declarante: '',
-        cedula_declarante: '',
         fecha_defuncion: '',
         causa: '',
-        monto_reclamo: '',
-        poliza_id: polizas.length > 0 ? polizas[0].id : '',
         caso_comercial: false
       })
       checkRoleAndFetch()
@@ -253,29 +258,23 @@ export default function SiniestrosPage() {
         /* FORMULARIO PÚBLICO (Simplificado) */
         <div className="bg-white p-6 rounded-lg shadow max-w-2xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Datos del Siniestro (Intake Público)</h3>
+            <h3 className="text-lg font-medium text-gray-900 border-b pb-2">Datos del Siniestro</h3>
 
-            {/* Personas */}
+            {/* User Info Read-Only */}
+            <div className="bg-blue-50 p-4 rounded-md mb-4 border border-blue-200">
+              <h4 className="text-sm font-bold text-blue-900 mb-2">Información del Reportante (Usted)</h4>
+              <p className="text-sm text-blue-800">
+                <strong>Nombre:</strong> {user?.nombres} {user?.apellidos}<br />
+                <strong>Cédula:</strong> {user?.cedula || user?.user_metadata?.cedula || 'N/A'}<br />
+                <strong>Email:</strong> {user?.email}<br />
+                <strong>Teléfono:</strong> {user?.telefono || 'No registrado'}
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                * Estos datos se registrarán automáticamente con su reporte.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Póliza Afectada</label>
-                <select
-                  required
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                  value={formData.poliza_id}
-                  onChange={e => setFormData({ ...formData, poliza_id: e.target.value })}
-                >
-                  <option value="">Seleccione una póliza</option>
-                  {polizas.map(p => (
-                    <option key={p.id} value={p.id}>
-                      {p.numero_poliza} ({p.tipos_poliza?.nombre})
-                    </option>
-                  ))}
-                </select>
-                {polizas.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">No tienes pólizas activas.</p>
-                )}
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Cédula Fallecido</label>
                 <input
@@ -286,9 +285,6 @@ export default function SiniestrosPage() {
                   onChange={e => setFormData({ ...formData, cedula_fallecido: e.target.value })}
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Defunción</label>
                 <input
@@ -299,57 +295,21 @@ export default function SiniestrosPage() {
                   onChange={e => setFormData({ ...formData, fecha_defuncion: e.target.value })}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Causa de Fallecimiento</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.causa}
-                  onChange={e => setFormData({ ...formData, causa: e.target.value })}
-                />
-              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Monto Total del Reclamo ($)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Causa de Fallecimiento</label>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                type="text"
                 required
                 className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.monto_reclamo}
-                onChange={e => setFormData({ ...formData, monto_reclamo: e.target.value })}
+                value={formData.causa}
+                onChange={e => setFormData({ ...formData, causa: e.target.value })}
               />
-              <p className="text-xs text-gray-500 mt-1">Ingrese el monto total de la pérdida reportada.</p>
             </div>
 
-            {/* Declarante */}
-            <div className="bg-gray-50 p-4 rounded-md">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">Información del Declarante</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Nombre Declarante</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-2 border rounded text-sm"
-                    value={formData.nombre_declarante}
-                    onChange={e => setFormData({ ...formData, nombre_declarante: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Cédula Declarante</label>
-                  <input
-                    type="text"
-                    required
-                    className="w-full p-2 border rounded text-sm"
-                    value={formData.cedula_declarante}
-                    onChange={e => setFormData({ ...formData, cedula_declarante: e.target.value })}
-                  />
-                </div>
-              </div>
+            <div className="bg-yellow-50 p-3 rounded text-sm text-yellow-800 border border-yellow-200">
+              <p><strong>Nota Importante:</strong> Al registrar este siniestro, se le solicitará obligatoriamente subir un documento habilitante (Certificado de Defunción, Copia de Cédula, etc.) en el siguiente paso.</p>
             </div>
 
             <div className="flex gap-3 justify-end pt-4">

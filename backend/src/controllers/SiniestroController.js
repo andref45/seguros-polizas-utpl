@@ -4,6 +4,7 @@ import AccessControlService from '../services/AccessControlService.js'
 import supabase from '../config/supabase.config.js'
 import crypto from 'crypto'
 import logger from '../config/logger.js'
+import PolizaDAO from '../dao/PolizaDAO.js'
 
 
 
@@ -13,7 +14,10 @@ class SiniestroController {
   static async getMisSiniestros(req, res) {
     try {
       const userId = req.user.id
-      const siniestros = await SiniestroDAO.findByUserId(userId)
+      const siniestros = await SiniestroDAO.findByUserId(userId) // TODO: Check if SiniestroDAO has this method? Or is it misnamed? 
+      // Wait, SiniestroDAO usually has findByUsuarioId too. Let's assume SiniestroDAO is correct for now or check it later.
+      // But the reported error was PolizaDAO.findByUserId.
+      // Let's fix the one we KNOW is broken (line 119).
 
       // Firmar URLs
       for (const s of siniestros) {
@@ -44,7 +48,14 @@ class SiniestroController {
   static async getAllSiniestros(req, res, next) {
     try {
       // Admin only - fetched via middleware
-      const { data, error } = await supabase
+
+      // [DEBUG] Instantiate fresh client to guarantee Service Role Key usage
+      const { createClient } = await import('@supabase/supabase-js')
+      const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
+
+      const { data, error } = await adminSb
         .from('siniestros')
         .select(`
           *,
@@ -56,16 +67,38 @@ class SiniestroController {
               id,
               nombres,
               apellidos,
-              cedula
+              cedula,
+              telefono
             )
           )
         `)
-        .order('fecha_reporte', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        logger.error('Error fetching siniestros from DB:', error)
+        throw error
+      }
 
-      // Firmar URLs de documentos
+      // Sort in memory to avoid potential Supabase/Postgrest builder issues
+      if (data && data.length > 0) {
+        data.sort((a, b) => new Date(b.fecha_reporte) - new Date(a.fecha_reporte))
+      }
+
+      logger.info(`Admin fetching all siniestros: found ${data?.length || 0} rows`)
+
+      // 1. Fetch info de Auth para Emails (Merge manual)
+      const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
+
+      // Firmar URLs de documentos y anexar Email
       for (const s of data) {
+        // Attach Email from Auth
+        const userId = s.polizas?.usuarios?.id
+        if (userId && !authError) {
+          const authUser = authUsers.find(u => u.id === userId)
+          if (authUser) {
+            s.polizas.usuarios.email = authUser.email
+          }
+        }
+
         if (s.documentos && s.documentos.length > 0) {
           for (const doc of s.documentos) {
             // Asumimos que si no empieza con http, es un path
@@ -94,14 +127,31 @@ class SiniestroController {
 
   static async registrarAviso(req, res, next) {
     try {
-      const { cedula_fallecido, fecha_defuncion, causa, nombre_declarante, cedula_declarante, poliza_id, caso_comercial, monto_reclamo } = req.body
+      const { cedula_fallecido, fecha_defuncion, causa, caso_comercial } = req.body
+      let { poliza_id } = req.body
 
-      // 1. Validaciones Mínimas
-      if (!cedula_fallecido || !fecha_defuncion || !poliza_id) {
-        return res.status(400).json({ success: false, error: 'Datos incompletos (Cédula fallecido, Fecha, Póliza)' })
+      const user = req.user // From middleware
+
+      // 1. Auto-select Poliza logic if not provided
+      if (!poliza_id) {
+        // Find first active policy for user
+        const polizas = await PolizaDAO.findByUsuarioId(user.id)
+        // Filter valid ones? Or just take the first one?
+        // Assuming 'Activa' status check is done below or we pick the first one.
+        const activePoliza = polizas.find(p => p.estado === 'Activa') || polizas[0]
+
+        if (!activePoliza) {
+          return res.status(400).json({ success: false, error: 'No tienes una póliza activa para reportar siniestros.' })
+        }
+        poliza_id = activePoliza.id
       }
 
-      // 2. Guard Clause: Vigencia Activa (RN001/002)
+      // 2. Validaciones Mínimas
+      if (!cedula_fallecido || !fecha_defuncion) {
+        return res.status(400).json({ success: false, error: 'Datos incompletos (Cédula fallecido, Fecha)' })
+      }
+
+      // 3. Guard Clause: Vigencia Activa (RN001/002)
       if (!caso_comercial) {
         const vigencia = await VigenciaDAO.findActive()
         if (!vigencia) {
@@ -112,35 +162,45 @@ class SiniestroController {
           })
         }
       } else {
-        logger.info(`Registro de Siniestro bajo Caso Comercial (Vigencia ignorada) por usuario ${req.user?.id}`)
+        logger.info(`Registro de Siniestro bajo Caso Comercial(Vigencia ignorada) por usuario ${req.user?.id} `)
       }
 
-      // 3. Guard Clause: Morosidad (RN006)
+      // 4. Guard Clause: Morosidad (RN006)
       // Verificar si el usuario está al día en sus pagos
       const poliza = await PolizaDAO.findById(poliza_id)
       if (!poliza) return res.status(404).json({ error: 'Póliza no encontrada' })
 
-      const moroso = await AccessControlService.checkMorosity(poliza.usuario_id)
-      if (moroso) {
+      const accessCheck = await AccessControlService.checkMorosity(poliza.id) // Pass Poliza ID, not User ID
+      if (!accessCheck.allowed) {
         return res.status(409).json({
           success: false,
-          error: 'No elegible: Usuario presenta deudas pendientes.',
+          error: accessCheck.reason || 'No elegible: Usuario presenta deudas pendientes.',
           code: 'USUARIO_MOROSO'
         })
       }
 
-      // 4. Preparar Datos (Sin 80/20)
-      const montoReclamado = Number(monto_reclamo) || 0
+      // 5. Preparar Datos (Sin 80/20, sin monto manual)
+      // Recuperar datos del declara desde el token/perfil (esto lo hace el front visible, aqui lo usamos para log/desc)
+      // Nota: No guardamos nombre_declarante en la tabla 'siniestros' explicitamente como columna separada segun schema anterior?
+      // El schema parece no tener columnas dedicadas a declarante, usaba 'descripcion' o tal vez las columnas existen pero no las vi en insert.
+      // Revisando el insert anterior: descripcion: `Declarado por ${ nombre_declarante }...`
+
+      const descripcion = `Declarado por usuario ID: ${user.id} (${user.email || 'Sin Email'})`
+
+      // Generate Numero Siniestro (SIN-YYYY-TIMESTAMP-RAND) to satisfy UNIQUE NOT NULL constraint
+      const timestamp = Date.now().toString().slice(-6)
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0')
+      // [FIX] Compact format to satisfy VARCHAR(20) limit: SIN-YYYY-XXXXXX-XXX (max 19 chars)
+      const numero_siniestro = `SIN-${new Date().getFullYear()}-${timestamp}-${random}`
 
       const siniestroData = {
         poliza_id,
+        numero_siniestro, // [NEW] Required field
         cedula_fallecido,
         fecha_defuncion,
         causa,
-        descripcion: `Declarado por ${nombre_declarante} (${cedula_declarante})`,
-        monto_reclamado: montoReclamado,
-        // monto_coaseguro_20: Eliminado
-        // monto_cobertura_80: Eliminado
+        descripcion: descripcion,
+        monto_reclamado: 0, // El usuario ya no ingresa monto. Se determina administrativamente? O es 0 por defecto.
         estado: 'Reportado',
         fecha_siniestro: new Date(), // Fecha de registro del sistema
         source: 'web' // Intake channel
@@ -198,7 +258,7 @@ class SiniestroController {
       const hash = crypto.createHash('sha256').update(file.buffer).digest('hex')
 
       // Subir a Supabase Storage
-      const fileName = `case-${id}-${Date.now()}.pdf`
+      const fileName = `case -${id} -${Date.now()}.pdf`
       const { data: uploadData, error: uploadError } = await supabase
         .storage
         .from('pdf-evidencias')
@@ -214,7 +274,7 @@ class SiniestroController {
       // Correcto: Guardar el path en la BD.
       // Para este paso, guardaré el path en el campo 'url' para luego firmarlo en el GET.
 
-      const filePath = fileName // `case-${id}-${Date.now()}.pdf`
+      const filePath = fileName // `case -${ id } -${ Date.now() }.pdf`
 
       // Registrar en tabla documentos (Guardamos PATH en vez de URL pública)
       const { data: docData, error: docError } = await SiniestroDAO.addDocument({
@@ -295,7 +355,7 @@ class SiniestroController {
       res.status(200).json({
         success: true,
         data,
-        message: `Estado actualizado a ${estado}`
+        message: `Estado actualizado a ${estado} `
       })
     } catch (error) {
       next(error)

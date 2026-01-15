@@ -57,6 +57,7 @@ export default function BackofficeDashboard() {
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Caso</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fallecido (Cédula)</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Declarante / Contacto</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
@@ -75,6 +76,15 @@ export default function BackofficeDashboard() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.id.slice(0, 8)}...</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {maskData(claim.cedula_fallecido)}
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {claim.polizas?.usuarios ? (
+                                            <>
+                                                <div className="font-medium text-gray-900">{claim.polizas.usuarios.nombres} {claim.polizas.usuarios.apellidos}</div>
+                                                <div className="text-xs">{claim.polizas.usuarios.telefono}</div>
+                                                <div className="text-xs">{claim.polizas.usuarios.email}</div>
+                                            </>
+                                        ) : 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(claim.fecha_defuncion).toLocaleDateString()}

@@ -33,27 +33,40 @@ class AuthController {
 
     static async getAllUsers(req, res) {
         try {
-            // 1. Fetch profiles from 'usuarios' (Public Data)
-            const { data: profiles, error: profileError } = await supabase
-                .from('usuarios')
-                .select('id, nombres, apellidos, cedula')
-                .order('apellidos', { ascending: true })
+            // [FIX] Instantiate fresh client to guarantee Service Role Key usage and avoid shared state issues
+            const { createClient } = await import('@supabase/supabase-js')
+            const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            })
 
-            if (profileError) throw profileError
-
-            // 2. Fetch emails from Auth Admin (Private Data)
-            const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
-
+            // 1. Fetch ALL Auth Users (Source of Truth for Accounts)
+            const { data: { users: authUsers }, error: authError } = await adminSb.auth.admin.listUsers()
             if (authError) throw authError
 
-            // 3. Merge data
-            const combinedUsers = profiles.map(profile => {
-                const authUser = authUsers.find(u => u.id === profile.id)
+            // 2. Fetch Profiles to enrich
+            const { data: profiles, error: profileError } = await adminSb
+                .from('usuarios')
+                .select('id, nombres, apellidos, cedula, tipo_usuario')
+
+            if (profileError) {
+                logger.warn('Error fetching profiles, showing raw auth users', profileError)
+            }
+
+            // 3. Map Auth Users to Combined List
+            const combinedUsers = authUsers.map(authUser => {
+                const profile = profiles ? profiles.find(p => p.id === authUser.id) : null
                 return {
-                    ...profile,
-                    email: authUser ? authUser.email : 'Sin email'
+                    id: authUser.id,
+                    email: authUser.email,
+                    nombres: profile?.nombres || 'Sin Nombre',
+                    apellidos: profile?.apellidos || '',
+                    cedula: profile?.cedula || 'S/C',
+                    tipo_usuario: profile?.tipo_usuario || 'user'
                 }
             })
+
+            // Sort by email or name
+            combinedUsers.sort((a, b) => (a.email || '').localeCompare(b.email || ''))
 
             res.json({ success: true, data: combinedUsers })
         } catch (error) {
@@ -114,6 +127,13 @@ class AuthController {
 
             logger.info(`User ${email} logged in successfully`)
 
+            // 5. Fetch Profile Data to enrich session
+            const { data: profile } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+
             res.status(200).json({
                 success: true,
                 data: {
@@ -122,7 +142,12 @@ class AuthController {
                     user: {
                         id: user.id,
                         email: user.email,
-                        role: role
+                        role: role,
+                        // Profile Data
+                        nombres: profile?.nombres || '',
+                        apellidos: profile?.apellidos || '',
+                        cedula: profile?.cedula || '',
+                        telefono: profile?.telefono || ''
                     }
                 }
             })
@@ -181,7 +206,7 @@ class AuthController {
                     nombres,
                     apellidos,
                     telefono,
-                    tipo_usuario,
+                    tipo_usuario: ROLES.USER, // Enforce 'user' to satisfy constraint
                     fecha_nacimiento: fecha_nacimiento || '2000-01-01', // Fallback si no viene
                     direccion,
                     estado: 'activo'

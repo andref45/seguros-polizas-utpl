@@ -26,7 +26,7 @@ export default function PrivateRoute({ children, allowedRoles }) {
       // If user logs in but has insufficient role, redirect to a "safe" page or home
       // For now, redirect to /mis-polizas or just allow them to fall through to a 403 page
       // Ideally: <Navigate to="/unauthorized" /> but for MVP redirect to dashboard/home if accessible or login
-      return <Navigate to="/mis-polizas" replace />
+      return <Navigate to="/info" replace />
     }
   }
 

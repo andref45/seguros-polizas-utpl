@@ -13,7 +13,7 @@ export default function RegisterPage() {
     fecha_nacimiento: '',
     telefono: '',
     direccion: '',
-    tipo_usuario: 'cliente'
+    tipo_usuario: 'estudiante'
   })
 
   const [error, setError] = useState('')
@@ -73,7 +73,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       console.error('Error catch:', err)
-      setError('Error inesperado: ' + (err.message || err))
+      setError('Ocurrió un error inesperado al intentar registrarse. Por favor verifique sus datos o intente más tarde.')
     } finally {
       setLoading(false)
     }

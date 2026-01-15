@@ -69,7 +69,8 @@ class PolizaService {
       fecha_inicio: fechaInicio.toISOString(),
       fecha_fin: fechaFin.toISOString(),
       estado: BusinessRules.ESTADOS_POLIZA.ACTIVA,
-      prima_mensual: tipoPoliza.prima_mensual
+      prima_mensual: tipoPoliza.prima_mensual,
+      cobertura_total: tipoPoliza.cobertura_maxima // Mapped from TipoPoliza to satisfy NOT NULL constraint
     }
 
     const poliza = await PolizaDAO.create(polizaData)
@@ -118,7 +119,7 @@ class PolizaService {
   }
 
   static generarNumeroPoliza() {
-    const timestamp = Date.now().toString()
+    const timestamp = Date.now().toString().slice(-8)
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
     return 'POL-' + timestamp + '-' + random
   }

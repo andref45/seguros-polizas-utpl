@@ -45,7 +45,13 @@ class PolizaDAO {
   }
 
   static async create(polizaData) {
-    const { data, error } = await supabase
+    // [FIX] Instantiate fresh client to guarantee Service Role Key usage for inserts (Bypass RLS)
+    const { createClient } = await import('@supabase/supabase-js')
+    const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const { data, error } = await adminSb
       .from('polizas')
       .insert([polizaData])
       .select('*, tipos_poliza(*)')
