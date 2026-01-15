@@ -1,8 +1,5 @@
 import PolizaDAO from '../dao/PolizaDAO.js'
-<<<<<<< HEAD
-=======
-import VigenciaDAO from '../dao/VigenciaDAO.js' // [NEW] RN001
->>>>>>> dev-JeanVillav
+import VigenciaDAO from '../dao/VigenciaDAO.js'
 import PolizaRules from '../rules/PolizaRules.js'
 import BusinessRules from './BusinessRules.js'
 
@@ -73,11 +70,7 @@ class PolizaService {
       fecha_fin: fechaFin.toISOString(),
       estado: BusinessRules.ESTADOS_POLIZA.ACTIVA,
       prima_mensual: tipoPoliza.prima_mensual,
-<<<<<<< HEAD
       cobertura_total: tipoPoliza.cobertura_maxima
-=======
-      cobertura_total: tipoPoliza.cobertura_maxima // Mapped from TipoPoliza to satisfy NOT NULL constraint
->>>>>>> dev-JeanVillav
     }
 
     const poliza = await PolizaDAO.create(polizaData)
@@ -126,18 +119,12 @@ class PolizaService {
   }
 
   static generarNumeroPoliza() {
-<<<<<<< HEAD
     // Generate shorter ID: POL-YYMM-XXXX (e.g., POL-2601-1234) -> 13 chars
     const date = new Date()
     const year = date.getFullYear().toString().substr(-2)
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
     return `POL-${year}${month}-${random}`
-=======
-    const timestamp = Date.now().toString().slice(-8)
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
-    return 'POL-' + timestamp + '-' + random
->>>>>>> dev-JeanVillav
   }
 
   static calcularDiasRestantes(fechaFin) {

@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import PolizaCard from '../components/polizas/PolizaCard'
 import ContratarPolizaModal from '../components/polizas/ContratarPolizaModal'
-
-import { useAuth } from '../store/AuthContext' // [NEW]
+import { useAuth } from '../store/AuthContext'
+import { FaShieldAlt, FaStar, FaGem, FaCrown } from 'react-icons/fa'
 
 export default function PolizasPage() {
-  const { user } = useAuth() // [NEW]
+  const { user } = useAuth()
   const [tiposPoliza, setTiposPoliza] = useState([])
-  const [users, setUsers] = useState([]) // [NEW]
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedPoliza, setSelectedPoliza] = useState(null)

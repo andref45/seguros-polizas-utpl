@@ -1,46 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --utpl-blue: #003366;
-    --utpl-blue-light: #004080;
-    --utpl-blue-dark: #002244;
-    --utpl-gold: #FDB913;
-    --utpl-gold-light: #FDCA3B;
-    --utpl-gold-dark: #E5A812;
+    --utpl-blue: #0f172a;
+    --utpl-gold: #d97706;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    background-color: theme('colors.brand.background');
+    color: theme('colors.brand.text.primary');
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+    color: theme('colors.brand.primary');
   }
 }
 
 @layer components {
+
+  /* Modern Button Styles */
   .btn-primary {
-    @apply bg-utpl-blue text-white py-2 px-4 rounded-lg hover:bg-utpl-blue-light focus:ring-4 focus:ring-utpl-gold transition font-medium;
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+    background-color: theme('colors.brand.primary');
+  }
+
+  .btn-primary:hover {
+    background-color: theme('colors.utpl.blue.light');
+  }
+
+  .btn-primary:focus {
+    --tw-ring-color: theme('colors.brand.primary');
   }
 
   .btn-secondary {
-    @apply bg-utpl-gold text-utpl-blue py-2 px-4 rounded-lg hover:bg-utpl-gold-dark focus:ring-4 focus:ring-utpl-blue transition font-medium;
+    @apply inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+    color: theme('colors.brand.text.primary');
+  }
+
+  .btn-secondary:focus {
+    --tw-ring-color: theme('colors.brand.primary');
+  }
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200;
+    background-color: theme('colors.brand.secondary');
+  }
+
+  .btn-accent:hover {
+    background-color: theme('colors.utpl.gold.light');
+  }
+
+  .btn-accent:focus {
+    --tw-ring-color: theme('colors.brand.secondary');
   }
 
   .link-primary {
-    @apply text-utpl-blue hover:text-utpl-gold font-medium transition;
+    @apply font-medium transition-colors duration-200 underline decoration-transparent underline-offset-4;
+    color: theme('colors.brand.primary');
+  }
+
+  .link-primary:hover {
+    color: theme('colors.brand.secondary');
+    text-decoration-color: theme('colors.brand.secondary');
+  }
+
+  /* Form Elements */
+  .input-field {
+    @apply block w-full rounded-md border-gray-300 shadow-sm sm:text-sm py-2 px-3 bg-white;
+  }
+
+  .input-field:focus {
+    border-color: theme('colors.brand.primary');
+    --tw-ring-color: theme('colors.brand.primary');
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 2px var(--tw-ring-color);
+  }
+
+  .label-text {
+    @apply block text-sm font-medium mb-1;
+    color: theme('colors.brand.text.primary');
+  }
+
+  /* Card Style */
+  .card {
+    @apply bg-white rounded-lg border border-gray-100 p-6;
+    box-shadow: theme('boxShadow.card');
   }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
 
-* {
-  box-sizing: border-box;
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

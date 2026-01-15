@@ -13,11 +13,7 @@ const limiter = rateLimit({
 
 export const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
-<<<<<<< HEAD
     max: 100000, // Effectively disabled for testing
-=======
-    max: 100, // Limit each IP to 100 login attempts per hour
->>>>>>> dev-JeanVillav
     message: {
         success: false,
         error: 'Too many login attempts, please try again later.'

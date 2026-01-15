@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
-import { FaEye, FaFilePdf } from 'react-icons/fa'
+import { FaEye, FaSearch, FaFilter, FaCheckCircle, FaClock, FaMoneyBillWave, FaExclamationCircle } from 'react-icons/fa'
 
 export default function BackofficeDashboard() {
+    // Mock data for initial visualization matching new enterprise style
     const [claims, setClaims] = useState([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState('Todos')
     const navigate = useNavigate()
 
     useEffect(() => {
-        loadClaims()
+        // Simulate API fetch
+        setLoading(true)
+        setTimeout(() => {
+            // Mock data used until API is confirmed
+            setClaims([
+                { id: 'SIN-2024-001', cedula_fallecido: '1105001234', fecha_defuncion: '2024-01-10', estado: 'Reportado', polizas: { usuarios: { nombres: 'Juan', apellidos: 'Perez', email: 'juan@mail.com', telefono: '0999999999' } } },
+                { id: 'SIN-2024-002', cedula_fallecido: '1105005678', fecha_defuncion: '2024-01-12', estado: 'En_tramite', polizas: { usuarios: { nombres: 'Maria', apellidos: 'Lopez', email: 'maria@mail.com', telefono: '0988888888' } } },
+                { id: 'SIN-2024-003', cedula_fallecido: '1105009012', fecha_defuncion: '2024-01-05', estado: 'Pagado', polizas: { usuarios: { nombres: 'Carlos', apellidos: 'Diaz', email: 'carlos@mail.com', telefono: '0977777777' } } },
+                { id: 'SIN-2024-004', cedula_fallecido: '1105003456', fecha_defuncion: '2024-01-14', estado: 'Reportado', polizas: { usuarios: { nombres: 'Ana', apellidos: 'Torres', email: 'ana@mail.com', telefono: '0966666666' } } },
+            ])
+            setLoading(false)
+        }, 1000)
     }, [])
-
-    const loadClaims = async () => {
-        try {
-            // Assuming GET /api/siniestros/list is implemented or using a general search
-            // Using mock data tailored to the requested API response for now if endpoint strictly not ready
-            // But we implemented SiniestroController placeholder? No, we implemented Aviso.
-            // We need a GET endpoint. For now, empty list or mock.
-            setLoading(false)
-        } catch (error) {
-            console.error('Error loading claims:', error)
-            setLoading(false)
-        }
-    }
 
     const maskData = (text) => {
         if (!text || text.length < 4) return '****'
@@ -35,82 +33,158 @@ export default function BackofficeDashboard() {
         ? claims
         : claims.filter(c => c.estado === filter)
 
-    return (
-        <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Backoffice - Gestión de Siniestros</h1>
+    // Calculate Stats
+    const stats = {
+        total: claims.length,
+        reportado: claims.filter(c => c.estado === 'Reportado').length,
+        tramite: claims.filter(c => c.estado === 'En_tramite').length,
+        pagado: claims.filter(c => c.estado === 'Pagado').length
+    }
 
-            <div className="flex gap-4 mb-6">
-                {['Todos', 'Reportado', 'En_tramite', 'Pagado'].map(status => (
-                    <button
-                        key={status}
-                        onClick={() => setFilter(status)}
-                        className={`px-4 py-2 rounded ${filter === status ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
-                    >
-                        {status.replace('_', ' ')}
-                    </button>
-                ))}
+    return (
+        <div>
+            {/* Page Header */}
+            <div className="mb-8 ">
+                <h1 className="text-2xl font-bold text-gray-900">Gestión de Siniestros</h1>
+                <p className="text-gray-500 mt-1">Monitoreo y atención de reclamaciones recientes.</p>
             </div>
 
-            <div className="bg-white shadow rounded-lg overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Caso</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fallecido (Cédula)</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Declarante / Contacto</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredClaims.length === 0 ? (
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div className="card border-l-4 border-l-utpl-blue flex items-center p-4">
+                    <div className="p-3 rounded-full bg-blue-50 text-utpl-blue mr-4">
+                        <FaExclamationCircle size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Total Casos</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                    </div>
+                </div>
+                <div className="card border-l-4 border-l-yellow-500 flex items-center p-4">
+                    <div className="p-3 rounded-full bg-yellow-50 text-yellow-600 mr-4">
+                        <FaClock size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Pendientes</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.reportado}</p>
+                    </div>
+                </div>
+                <div className="card border-l-4 border-l-blue-500 flex items-center p-4">
+                    <div className="p-3 rounded-full bg-blue-50 text-blue-600 mr-4">
+                        <FaFilter size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">En Trámite</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.tramite}</p>
+                    </div>
+                </div>
+                <div className="card border-l-4 border-l-green-500 flex items-center p-4">
+                    <div className="p-3 rounded-full bg-green-50 text-green-600 mr-4">
+                        <FaMoneyBillWave size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Pagados</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.pagado}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filters & Actions */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    {['Todos', 'Reportado', 'En_tramite', 'Pagado'].map(status => (
+                        <button
+                            key={status}
+                            onClick={() => setFilter(status)}
+                            className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${filter === status
+                                ? 'bg-white text-utpl-blue shadow-sm'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            {status.replace('_', ' ')}
+                        </button>
+                    ))}
+                </div>
+                <div className="relative w-full md:w-64">
+                    <input
+                        type="text"
+                        placeholder="Buscar por cédula..."
+                        className="input-field pl-10"
+                    />
+                    <FaSearch className="absolute left-3 top-2.5 text-gray-400" />
+                </div>
+            </div>
+
+            {/* Data Table */}
+            <div className="bg-white shadow-soft rounded-lg overflow-hidden border border-gray-100">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
                             <tr>
-                                <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                                    No hay casos registrados.
-                                </td>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">ID Caso</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fallecido</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Declarante</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
-                        ) : (
-                            filteredClaims.map(claim => (
-                                <tr key={claim.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{claim.id.slice(0, 8)}...</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {maskData(claim.cedula_fallecido)}
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-gray-500">
-                                        {claim.polizas?.usuarios ? (
-                                            <>
-                                                <div className="font-medium text-gray-900">{claim.polizas.usuarios.nombres} {claim.polizas.usuarios.apellidos}</div>
-                                                <div className="text-xs">{claim.polizas.usuarios.telefono}</div>
-                                                <div className="text-xs">{claim.polizas.usuarios.email}</div>
-                                            </>
-                                        ) : 'N/A'}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {new Date(claim.fecha_defuncion).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                ${claim.estado === 'Reportado' ? 'bg-yellow-100 text-yellow-800' : ''}
-                                ${claim.estado === 'En_tramite' ? 'bg-blue-100 text-blue-800' : ''}
-                                ${claim.estado === 'Pagado' ? 'bg-green-100 text-green-800' : ''}
-                            `}>
-                                            {claim.estado}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button
-                                            onClick={() => navigate(`/backoffice/siniestros/${claim.id}`)}
-                                            className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
-                                        >
-                                            <FaEye /> Ver Detalle
-                                        </button>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
+                                        Cargando datos...
                                     </td>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            ) : filteredClaims.length === 0 ? (
+                                <tr>
+                                    <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
+                                        No se encontraron siniestros con este filtro.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filteredClaims.map(claim => (
+                                    <tr key={claim.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-utpl-blue">
+                                            {claim.id}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {maskData(claim.cedula_fallecido)}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500">
+                                            {claim.polizas?.usuarios ? (
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-gray-900">{claim.polizas.usuarios.nombres} {claim.polizas.usuarios.apellidos}</span>
+                                                    <span className="text-xs text-gray-400">{claim.polizas.usuarios.email}</span>
+                                                </div>
+                                            ) : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            {new Date(claim.fecha_defuncion).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
+                                                ${claim.estado === 'Reportado' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : ''}
+                                                ${claim.estado === 'En_tramite' ? 'bg-blue-50 text-blue-800 border-blue-200' : ''}
+                                                ${claim.estado === 'Pagado' ? 'bg-green-50 text-green-800 border-green-200' : ''}
+                                            `}>
+                                                {claim.estado.replace('_', ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => navigate(`/backoffice/siniestros/${claim.id}`)}
+                                                className="text-utpl-blue hover:text-utpl-gold transition-colors flex items-center justify-end gap-1 ml-auto"
+                                            >
+                                                <FaEye /> Gestionar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     )

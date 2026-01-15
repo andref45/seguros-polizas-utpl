@@ -5,11 +5,13 @@ import Layout from './components/layout/Layout'
 
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import DashboardPage from './pages/DashboardPage'
+import DashboardPage from './pages/DashboardPage' // Keeps user dashboard logic if needed elsewhere
+import BackofficeDashboard from './pages/BackofficeDashboard' // Import Admin Dashboard
 import PolizasPage from './pages/PolizasPage'
 import MisPolizasPage from './pages/MisPolizasPage'
 import PagosPage from './pages/PagosPage'
 import SiniestrosPage from './pages/SiniestrosPage'
+import ModulesPage from './pages/ModulesPage' // New
 import PerfilPage from './pages/PerfilPage'
 import InfoPage from './pages/InfoPage'
 
@@ -45,7 +47,7 @@ function App() {
             {/* ADMIN ONLY */}
             <Route path="dashboard" element={
               <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
-                <DashboardPage />
+                <BackofficeDashboard />
               </PrivateRoute>
             } />
             <Route path="polizas" element={
@@ -61,6 +63,12 @@ function App() {
             <Route path="mis-polizas" element={
               <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
                 <MisPolizasPage />
+              </PrivateRoute>
+            } />
+            {/* Removed Usuarios Page as per request */}
+            <Route path="modules" element={
+              <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
+                <ModulesPage />
               </PrivateRoute>
             } />
 

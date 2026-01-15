@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
 import api from '../services/api'
-import { FaFileContract, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa'
+import { FaFileContract, FaCalendarAlt, FaCheckCircle, FaTimesCircle, FaExclamationCircle, FaShieldAlt } from 'react-icons/fa'
 
 export default function MisPolizasPage() {
   const { user } = useAuth()
@@ -19,7 +19,6 @@ export default function MisPolizasPage() {
       setError('')
 
       const response = await api.get('/polizas/mis-polizas')
-      // Backend: { success: true, data: [...] }
       const data = response.data.data || []
       setPolizas(data)
 

@@ -3,7 +3,7 @@ import { useAuth } from '../store/AuthContext'
 import api from '../services/api'
 import PagoForm from '../components/pagos/PagoForm'
 import PagosTable from '../components/pagos/PagosTable'
-import { FaMoneyBillWave, FaChartLine } from 'react-icons/fa'
+import { FaMoneyBillWave, FaChartLine, FaHistory, FaCalendarCheck } from 'react-icons/fa'
 
 export default function PagosPage() {
   const { user } = useAuth()

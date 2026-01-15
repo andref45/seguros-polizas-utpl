@@ -27,11 +27,7 @@ class SiniestroDAO {
     static async findByUserId(userId) {
         const { data, error } = await supabase
             .from('siniestros')
-<<<<<<< HEAD
             .select('*, documentos(*), polizas!inner(*)')
-=======
-            .select('*, polizas!inner(*), documentos(*)')
->>>>>>> dev-JeanVillav
             .eq('polizas.usuario_id', userId)
             .order('fecha_siniestro', { ascending: false })
 

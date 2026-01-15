@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
+import { FaShieldAlt, FaArrowLeft, FaUser, FaIdCard, FaEnvelope, FaLock, FaMapMarkerAlt, FaPhone, FaArrowRight, FaSpinner, FaCalendarAlt } from 'react-icons/fa'
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -34,7 +35,6 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
 
-    // Validaciones
     if (formData.password !== formData.confirmPassword) {
       setError('Las contraseñas no coinciden')
       return
@@ -73,7 +73,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       console.error('Error catch:', err)
-      setError('Ocurrió un error inesperado al intentar registrarse. Por favor verifique sus datos o intente más tarde.')
+      setError('Ocurrió un error inesperado. Por favor verifique sus datos o intente más tarde.')
     } finally {
       setLoading(false)
     }
