@@ -1,66 +1,62 @@
-# 🏥 Guía de Siniestros (Explicación para Dummies)
+# 🏥 Guía de Siniestros (Manual de Usuario)
 
-Esta guía explica cómo funciona el módulo de **Reclamaciones (Siniestros)** en el sistema de Seguros UTPL. Está diseñada para que cualquier persona entienda qué necesita y qué pasará con su trámite, siguiendo las reglas oficiales de la institución.
-
----
-
-## 📋 ¿Qué necesito antes de empezar?
-
-Para que el sistema te permita registrar un siniestro, debes cumplir **3 Reglas de Oro** (basadas en la Arquitectura B1):
-
-1.  **Tener una Póliza Activa**: Debes haber contratado un seguro y este debe estar vigente en el año actual (2026).
-2.  **Estar al Día en Pagos (Sin Deudas)**: El sistema revisará automáticamente si has pagado tus primas mensuales.
-    *   *Ojo*: Si tienes deudas pendientes, el sistema **te bloqueará** y te mostrará un mensaje de error (RN006). ¡Paga primero!
-3.  **Tener las Evidencias en PDF**: No se aceptan fotos ni Word. Debes tener los certificados (defunción, facturas) escaneados en formato `.pdf`.
+Esta guía explica paso a paso cómo utilizar el módulo de **Reclamaciones (Siniestros)** en el sistema de Seguros UTPL. Sigue estas instrucciones para asegurar que tu trámite sea aprobado rápidamente.
 
 ---
 
-## 🔄 ¿Cómo funciona el proceso? (Paso a Paso)
+## 📋 Requisitos Previos
 
-El trámite es automático y transparente. Aquí te explicamos qué hace el sistema por ti:
+Antes de intentar registrar un siniestro, verifica que cumples con las **3 Reglas de Oro**:
 
-### 1. El Registro (El sistema hace las cuentas)
-Cuando entras a **"Nuevo Siniestro"** y llenas los datos, el sistema te pedirá el **Monto Total** de la pérdida.
-En ese momento, aplicará la regla del **Coaseguro 80/20**:
-
-*   **El Seguro Paga (80%)**: La mayor parte la cubre la póliza.
-*   **Tú Pagas (20%)**: Este es tu deducible o coaseguro.
-
-> **Ejemplo**: Si el reclamo es de **$100.00**:
-> *   Verás en verde: **$80.00** (Cobertura).
-> *   Verás en naranja: **$20.00** (Tu parte).
-
-### 2. La Validación (Candados de Seguridad)
-Al hacer clic en "Registrar", el sistema verifica en milisegundos:
-*   ¿El año fiscal está abierto? (Si no, te rechaza).
-*   ¿Tienes deudas? (Si sí, te rechaza).
-*   ¿El monto es válido?
-
-Si todo está bien, tu siniestro se guarda con estado: 🟡 **REPORTADO**.
-
-### 3. La Evidencia (Obligatorio)
-Tu trámite **NO** avanzará si no subes los papeles.
-*   Busca tu siniestro en el **Historial**.
-*   Verás un botón para **Subir PDF**.
-*   Hasta que no subas el archivo, el sistema (o un administrativo) no podrá cambiar el estado a "En Trámite". Es un candado de seguridad (RN007).
-
-### 4. El Seguimiento
-Una vez subido el documento, el área administrativa revisa y cambia el estado:
-*   🔵 **EN TRÁMITE**: Están analizando tu caso.
-*   🟢 **PAGADO**: El dinero (el 80%) ha sido desembolsado.
-*   🔴 **RECHAZADO**: Algo no cumplió las normas.
+1.  **Póliza Activa**: Debes haber contratado un seguro y el periodo académico actual (Vigencia) debe estar activo. El sistema no permite registrar reclamos si la vigencia ha expirado.
+2.  **Estar al Día (Sin Deudas)**: Si tienes pagos pendientes, el sistema te bloqueará automáticamente (**RN006**). ¡Asegúrate de haber pagado tu prima mensual!
+3.  **Documentos Listos (PDF)**: Escanea todas tus evidencias (cedula, partida de defunción, facturas, etc.) y guárdalas como **archivos .pdf**. El sistema rechazará fotos o documentos Word.
 
 ---
 
-## 🧠 En Resumen (Para Expertos)
+## 🔄 Flujo del Proceso
 
-Si te preguntan por la parte técnica, así funciona "por debajo":
+El trámite sigue un proceso de 4 pasos simples:
 
-| Concepto | Cómo se aplicó | Regla de Negocio |
-| :--- | :--- | :--- |
-| **Coaseguro** | Cálculo automático en Backend y Frontend antes de guardar. | **Regla 80/20** |
-| **Morosidad** | `AccessControlService` consulta si hay facturas vencidas. | **RN006** |
-| **Año Fiscal** | `VigenciaDAO` verifica que `2026` esté `abierto`. | **RN001** |
-| **Workflow** | Máquina de Estados: `Reportado` -> `En_tramite` -> `Pagado`. | **FSM Estricta** |
+### Paso 1: Reportar el Siniestro
+1.  Ingresa a la plataforma y ve a **"Mis Pólizas"**.
+2.  Selecciona la póliza afectada y haz clic en **"Reportar Siniestro"**.
+3.  Completa el formulario:
+    *   **Cédula del Fallecido/Afectado**.
+    *   **Fecha exacta del evento**.
+    *   **Monto Reclamado**: Ingresa el valor total de los gastos o cobertura solicitada.
+4.  Haz clic en **"Registrar Siniestro"**.
+    *   *Nota*: Si el sistema detecta deudas o vigencia cerrada, te mostrará un error y no guardará el registro.
 
-¡Así de simple es gestionar tus seguros con el nuevo sistema! 🚀
+### Paso 2: Subir Evidencias (Obligatorio)
+Tu trámite se creará con estado 🟡 **REPORTADO**, pero quedará "en espera" hasta que subas los documentos.
+1.  Ve al **Detalle del Siniestro**.
+2.  En la sección "Documentos Habilitantes", usa el botón de carga.
+3.  Sube archivo por archivo (Solo **PDF**).
+    *   *Seguridad*: El sistema verifica automáticamente que el archivo sea un PDF real y genera un "sello de seguridad" (Hash SHA-256) para evitar alteraciones.
+
+### Paso 3: Revisión Administrativa
+Una vez cargados los documentos, el personal administrativo ("Nancy") revisará tu caso.
+*   Si falta algo, el estado seguirá en **REPORTADO**.
+*   Si todo está completo y correcto, cambiarán el estado a 🔵 **EN TRÁMITE**.
+
+### Paso 4: Aprobación y Pago
+Finalmente, la administración aprobará el desembolso.
+*   El estado cambiará a 🟢 **PAGADO**.
+*   Podrás ver el **Monto Autorizado** y el **Monto Pagado** en tu panel.
+
+---
+
+## ❓ Preguntas Frecuentes
+
+**Q: ¿Por qué me sale error "Vigencia Cerrada"?**
+R: Significa que el periodo para presentar reclamos de este año académico ha finalizado. Contacta a administración para un "Caso Comercial".
+
+**Q: ¿Puedo subir fotos de mi celular?**
+R: No directamente. Debes convertirlas a **PDF** primero. Esto es obligatorio por normativa de auditoría (**RN007**).
+
+**Q: ¿Cuánto tiempo tarda?**
+R: Depende de la revisión administrativa. Mientras tu estado sea "En Trámite", tu gestión está avanzando.
+
+---
+*Sistema de Gestión de Pólizas - UTPL*

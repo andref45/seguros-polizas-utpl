@@ -1,4 +1,5 @@
 import PolizaDAO from '../dao/PolizaDAO.js'
+import VigenciaDAO from '../dao/VigenciaDAO.js' // [NEW] RN001
 import PolizaRules from '../rules/PolizaRules.js'
 import BusinessRules from './BusinessRules.js'
 
@@ -40,10 +41,25 @@ class PolizaService {
     // Generar número de póliza único
     const numeroPoliza = this.generarNumeroPoliza()
 
-    // Calcular fechas de vigencia
+    // [NEW] RN002: Vigencia Activa check
+    const vigencia = await VigenciaDAO.findActive()
+    if (!vigencia) {
+      throw new Error('NO_VIGENCIA_ACTIVA: No se pueden contratar pólizas fuera del periodo de vigencia.')
+    }
+
+    // Calcular fechas de vigencia (RN001: Must match vigencia period)
     const fechaInicio = new Date()
-    const fechaFin = new Date()
-    fechaFin.setDate(fechaFin.getDate() + BusinessRules.POLIZA_VIGENCIA_DIAS)
+    // const fechaFin = new Date()
+    // fechaFin.setDate(fechaFin.getDate() + BusinessRules.POLIZA_VIGENCIA_DIAS)
+
+    // Instead of arbitrary 1 year, we clamp to Vigencia End Date (or use Business Rule).
+    // Assuming standard is 1 year but capped by Vigencia.
+    // For this academic model, insurance usually ends with the academic period.
+    const fechaFin = new Date(vigencia.fecha_fin)
+
+    if (fechaInicio > fechaFin) {
+      throw new Error('La vigencia actual ya ha expirado.')
+    }
 
     // Crear póliza
     const polizaData = {
@@ -53,8 +69,7 @@ class PolizaService {
       fecha_inicio: fechaInicio.toISOString(),
       fecha_fin: fechaFin.toISOString(),
       estado: BusinessRules.ESTADOS_POLIZA.ACTIVA,
-      prima_mensual: tipoPoliza.prima_mensual,
-      cobertura_maxima: tipoPoliza.cobertura_maxima
+      prima_mensual: tipoPoliza.prima_mensual
     }
 
     const poliza = await PolizaDAO.create(polizaData)

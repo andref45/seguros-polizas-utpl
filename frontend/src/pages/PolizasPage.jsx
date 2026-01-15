@@ -4,8 +4,12 @@ import api from '../services/api'
 import PolizaCard from '../components/polizas/PolizaCard'
 import ContratarPolizaModal from '../components/polizas/ContratarPolizaModal'
 
+import { useAuth } from '../store/AuthContext' // [NEW]
+
 export default function PolizasPage() {
+  const { user } = useAuth() // [NEW]
   const [tiposPoliza, setTiposPoliza] = useState([])
+  const [users, setUsers] = useState([]) // [NEW]
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedPoliza, setSelectedPoliza] = useState(null)
@@ -21,8 +25,13 @@ export default function PolizasPage() {
       setError('')
 
       const response = await api.get('/polizas/tipos')
-      // Backend response: { success: true, data: [...] }
       setTiposPoliza(response.data.data || [])
+
+      // [NEW] If Admin, fetch users for selection
+      if (user?.role === 'admin') {
+        const usersResponse = await api.get('/auth/users')
+        setUsers(usersResponse.data.data || [])
+      }
     } catch (err) {
       console.error('Error loading tipos poliza:', err)
       setError('Error al cargar tipos de pólizas. Verifique su conexión.')
@@ -35,10 +44,13 @@ export default function PolizasPage() {
     setSelectedPoliza(tipoPoliza)
   }
 
-  const handleConfirmContratar = async (tipoPolizaId) => {
+  const handleConfirmContratar = async (tipoPolizaId, targetUserId = null) => {
     try {
       // Llamada al backend para contratar
-      await api.post('/polizas/contratar', { tipo_poliza_id: tipoPolizaId })
+      await api.post('/polizas/contratar', {
+        tipo_poliza_id: tipoPolizaId,
+        usuario_id: targetUserId
+      })
 
       setSelectedPoliza(null)
       alert('¡Póliza contratada exitosamente!')
@@ -94,6 +106,8 @@ export default function PolizasPage() {
       {selectedPoliza && (
         <ContratarPolizaModal
           tipoPoliza={selectedPoliza}
+          users={users} // [NEW]
+          isAdmin={user?.role === 'admin'} // [NEW]
           onClose={() => setSelectedPoliza(null)}
           onConfirm={handleConfirmContratar}
         />

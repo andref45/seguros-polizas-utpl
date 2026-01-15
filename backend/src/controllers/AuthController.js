@@ -1,5 +1,6 @@
 import supabase from '../config/supabase.config.js'
 import logger from '../config/logger.js'
+import { ROLES } from '../constants/roles.js'
 
 class AuthController {
 
@@ -25,6 +26,38 @@ class AuthController {
 
         } catch (error) {
             logger.error('Error in getMe', error)
+            res.status(500).json({ success: false, error: error.message })
+        }
+    }
+
+
+    static async getAllUsers(req, res) {
+        try {
+            // 1. Fetch profiles from 'usuarios' (Public Data)
+            const { data: profiles, error: profileError } = await supabase
+                .from('usuarios')
+                .select('id, nombres, apellidos, cedula')
+                .order('apellidos', { ascending: true })
+
+            if (profileError) throw profileError
+
+            // 2. Fetch emails from Auth Admin (Private Data)
+            const { data: { users: authUsers }, error: authError } = await supabase.auth.admin.listUsers()
+
+            if (authError) throw authError
+
+            // 3. Merge data
+            const combinedUsers = profiles.map(profile => {
+                const authUser = authUsers.find(u => u.id === profile.id)
+                return {
+                    ...profile,
+                    email: authUser ? authUser.email : 'Sin email'
+                }
+            })
+
+            res.json({ success: true, data: combinedUsers })
+        } catch (error) {
+            logger.error('Error in getAllUsers', error)
             res.status(500).json({ success: false, error: error.message })
         }
     }
@@ -127,7 +160,7 @@ class AuthController {
                 email,
                 password,
                 options: {
-                    data: { role: tipo_usuario } // Guardar rol en metadata
+                    data: { role: ROLES.USER } // FORCE standard user role for self-registration. Ignore tipo_usuario for RBAC.
                 }
             })
 

@@ -42,7 +42,8 @@ export default function SiniestrosPage() {
         setIsAdmin(true)
       } catch (e) {
         // If 403, proceed as User
-        console.log('Not Admin, loading user data...')
+        console.error('Admin Fetch Failed:', e.response?.data || e.message)
+        console.log('Not Admin (or error), loading user data...')
         const userRes = await api.get('/siniestros/mis-siniestros')
         setSiniestros(userRes.data.data)
         setIsAdmin(false)

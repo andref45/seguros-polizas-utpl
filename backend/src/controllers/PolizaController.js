@@ -62,8 +62,15 @@ class PolizaController {
 
   static async contratarPoliza(req, res, next) {
     try {
-      const { tipo_poliza_id } = req.body
-      const usuarioId = req.user.id
+      const { tipo_poliza_id, usuario_id } = req.body
+      let targetUserId = req.user.id
+
+      // Si es Admin y envía usuario_id, usar ese ID. Si no, usa el suyo.
+      const isAdmin = req.user.role === 'admin' || req.user.app_metadata?.role === 'admin' // handle both cases securely
+
+      if (isAdmin && usuario_id) {
+        targetUserId = usuario_id
+      }
 
       if (!tipo_poliza_id) {
         return res.status(400).json({
@@ -72,7 +79,7 @@ class PolizaController {
         })
       }
 
-      const poliza = await PolizaService.contratarPoliza(usuarioId, tipo_poliza_id)
+      const poliza = await PolizaService.contratarPoliza(targetUserId, tipo_poliza_id)
 
       res.status(201).json({
         success: true,

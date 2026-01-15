@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { FaTimes, FaFileContract, FaDollarSign, FaShieldAlt, FaCalendar } from 'react-icons/fa'
 
-export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm }) {
+export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm, users = [], isAdmin = false }) { // [NEW] added props
   const [loading, setLoading] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState('') // [NEW]
 
   const formatMoney = (amount) => {
     return new Intl.NumberFormat('es-EC', {
@@ -18,8 +19,12 @@ export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm })
   }
 
   const handleConfirm = async () => {
+    if (isAdmin && !selectedUserId) {
+      alert('Por favor seleccione un usuario para asignar la póliza.')
+      return
+    }
     setLoading(true)
-    await onConfirm(tipoPoliza.id)
+    await onConfirm(tipoPoliza.id, selectedUserId || null) // Pass selectedUserId
     setLoading(false)
   }
 
@@ -45,6 +50,25 @@ export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm })
             </h3>
             <p className="text-blue-800">{tipoPoliza.descripcion}</p>
           </div>
+
+          {/* ADMIN: Select User */}
+          {isAdmin && (
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Asignar Póliza a Usuario (Admin)</label>
+              <select
+                className="w-full p-2 border rounded"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+              >
+                <option value="">-- Seleccione un usuario --</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>
+                    {u.apellidos} {u.nombres} ({u.cedula}) - {u.email}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg">

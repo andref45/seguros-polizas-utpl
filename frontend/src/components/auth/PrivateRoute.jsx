@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../store/AuthContext'
 
-export default function PrivateRoute({ children }) {
+export default function PrivateRoute({ children, allowedRoles }) {
   const { user, loading } = useAuth()
 
   if (loading) {
@@ -17,6 +17,17 @@ export default function PrivateRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Role verification (if allowedRoles is provided)
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole = user.app_metadata?.role || user.role // Handle Supabase logic
+    if (!allowedRoles.includes(userRole)) {
+      // If user logs in but has insufficient role, redirect to a "safe" page or home
+      // For now, redirect to /mis-polizas or just allow them to fall through to a 403 page
+      // Ideally: <Navigate to="/unauthorized" /> but for MVP redirect to dashboard/home if accessible or login
+      return <Navigate to="/mis-polizas" replace />
+    }
   }
 
   return children

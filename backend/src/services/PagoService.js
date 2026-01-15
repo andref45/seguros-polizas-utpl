@@ -69,7 +69,7 @@ class PagoService {
     // Calcular Copagos (Financial Service)
     const { montoEmpleado, montoInstitucion } = FinancialService.calculateCopago(
       monto,
-      poliza.tipo_copago || '100/0' // Fallback si no tiene tipo definido
+      poliza.copagos_config || { porcentaje_empleado: 100, porcentaje_institucion: 0 } // Fallback
     )
 
     // Verificar Extemporaneidad
@@ -80,7 +80,7 @@ class PagoService {
     const nuevoPago = {
       poliza_id,
       monto, // Total
-      regla_copago: poliza.tipo_copago || '100/0',
+      regla_copago: poliza.copagos_config?.nombre || '100/0 Estándar',
       estado_temporalidad: estadoTemporalidad,
       monto_empleado: montoEmpleado,
       monto_institucion: montoInstitucion,

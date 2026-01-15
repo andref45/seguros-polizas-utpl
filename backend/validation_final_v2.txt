@@ -1,8 +1,19 @@
-🚀 Starting Sprint 1 Verification...
-[GET /health] Status: 200 ✅
-[POST /auth/login] Invalid Creds: 401 ✅
-[POST /siniestros/aviso] Missing Data: 400 ✅
-[PATCH /siniestros/{id}] Hit Endpoint: 500 ✅ (Endpoint exists)
-[GET /vigencias/activa] Status: 500 ❌
-[POST /siniestros/aviso] Vigencia Guard: 500 ❌ (500)
-🏁 Verification Complete. Check backend logs for correlation IDs.
+# Verificación de Cumplimiento (RN001-RN011)
+
+Sigue estos pasos para validar que el sistema cumple con las reglas de negocio implementadas.
+
+## 1. Validación de Vigencias (RN001, RN002)
+- [ ] Intentar "Contratar Póliza" desde la interfaz.
+- [ ] **Resultado Esperado**: Si hay vigencia activa, permite contratar. Si se cierra la vigencia en BD (update vigencias set fech_fin = ayer), debe dar error "Vigencia expirada" o "No hay vigencia activa".
+
+## 2. Reporte de Nómina y Masking (RN005, RN008, RN009)
+- [ ] Navegar a `http://localhost:3000/api/pagos/reporte-nomina?mes=01&anio=2026` (o usar Postman/Curl).
+- [ ] **Prueba como Usuario Normal**:
+    - Header: `Authorization: Bearer <TOKEN_USUARIO>`
+    - **Resultado**: Debe devolver JSON pero con `cedula: "******1234"` (Masked).
+- [ ] **Prueba como Admin**:
+    - Header: `Authorization: Bearer <TOKEN_ADMIN>`
+    - **Resultado**: Debe devolver JSON con cédula completa.
+
+## 3. Estado Servidor
+- [ ] Revisar que no haya errores 500 en la consola del backend.

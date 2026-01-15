@@ -50,24 +50,32 @@ export const verifyToken = async (req, res, next) => {
     }
 }
 
-export const requireRole = (role) => {
+import { ROLES } from '../constants/roles.js'
+
+export const requireRole = (requiredRole) => {
     return (req, res, next) => {
-        // STRICT CHECK: app_metadata.role for admin, ignore user_metadata for this critical role
-        const appRole = req.user.app_metadata?.role
-        const isServiceRole = req.user.role === 'service_role'
+        // STRICT CHECK: app_metadata.role from JWT (set in verifyToken)
+        const userRole = req.user.role // This comes from app_metadata.role in verifyToken
 
-        // If we require 'admin', we MUST see it in app_metadata.role
-        if (role === 'admin' && appRole !== 'admin' && !isServiceRole) {
-            logger.warn(`Access denied for user ${req.user.id}. Required 'admin', found '${appRole}'`)
-            return res.status(403).json({ success: false, error: 'Acceso denegado: Se requiere rol de Administrador.' })
+        // [DEBUG] Log the check
+        logger.info(`[AuthMiddleware] Checking Role. User: ${req.user.email} (${req.user.id}), Required: ${requiredRole}, Found: ${userRole}`)
+
+        // Special check for ADMIN
+        if (requiredRole === ROLES.ADMIN) {
+            if (userRole !== ROLES.ADMIN) {
+                logger.warn(`Access denied for user ${req.user.id}. Required '${ROLES.ADMIN}', found '${userRole}'`)
+                return res.status(403).json({
+                    success: false,
+                    error: `Acceso denegado: Se requiere rol de Administrador. (Tu rol: ${userRole || 'ninguno'})`
+                })
+            }
         }
-
-        // Fallback for other roles (e.g. 'empleado' might be in user_metadata)
-        // But for this specific 'Nancy' refactor, we are focusing on Admin protection.
-        if (role !== 'admin' && appRole !== role && !isServiceRole) {
+        // Generick check for other roles if needed (e.g. USER)
+        else if (userRole !== requiredRole) {
+            logger.warn(`Access denied for user ${req.user.id}. Required '${requiredRole}', found '${userRole}'`)
             return res.status(403).json({ success: false, error: 'Insufficient permissions' })
         }
-        // If all checks pass
+
         next()
     }
 }

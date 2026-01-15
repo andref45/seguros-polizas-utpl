@@ -15,6 +15,21 @@ class SiniestroController {
       const userId = req.user.id
       const siniestros = await SiniestroDAO.findByUserId(userId)
 
+      // Firmar URLs
+      for (const s of siniestros) {
+        if (s.documentos && s.documentos.length > 0) {
+          for (const doc of s.documentos) {
+            if (doc.url && !doc.url.startsWith('http')) {
+              const { data: signedData } = await supabase
+                .storage
+                .from('pdf-evidencias')
+                .createSignedUrl(doc.url, 3600)
+              doc.url = signedData?.signedUrl || null
+            }
+          }
+        }
+      }
+
       res.status(200).json({
         success: true,
         data: siniestros
@@ -48,6 +63,25 @@ class SiniestroController {
         .order('fecha_reporte', { ascending: false })
 
       if (error) throw error
+
+      // Firmar URLs de documentos
+      for (const s of data) {
+        if (s.documentos && s.documentos.length > 0) {
+          for (const doc of s.documentos) {
+            // Asumimos que si no empieza con http, es un path
+            if (doc.url && !doc.url.startsWith('http')) {
+              const { data: signedData, error: signError } = await supabase
+                .storage
+                .from('pdf-evidencias')
+                .createSignedUrl(doc.url, 3600) // 1 hora
+
+              if (!signError && signedData?.signedUrl) {
+                doc.url = signedData.signedUrl
+              }
+            }
+          }
+        }
+      }
 
       res.status(200).json({
         success: true,
@@ -126,6 +160,14 @@ class SiniestroController {
         throw error
       }
 
+      logger.info({
+        action: 'REGISTRAR_SINIESTRO',
+        user: req.user?.id || 'public',
+        role: req.user?.app_metadata?.role || 'public',
+        resource: data.id,
+        status: 'SUCCESS'
+      })
+
       res.status(201).json({
         success: true,
         data,
@@ -167,22 +209,32 @@ class SiniestroController {
 
       if (uploadError) throw uploadError
 
-      // Generar URL Pública (o firmada según política)
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('pdf-evidencias')
-        .getPublicUrl(fileName)
+      // Generar URL Firmada (Signed URL)
+      // Nota: Guardamos el path, y generamos la URL al leer, o generamos una temporal larga si el MVP lo permite.
+      // Correcto: Guardar el path en la BD.
+      // Para este paso, guardaré el path en el campo 'url' para luego firmarlo en el GET.
 
-      // Registrar en tabla documentos
+      const filePath = fileName // `case-${id}-${Date.now()}.pdf`
+
+      // Registrar en tabla documentos (Guardamos PATH en vez de URL pública)
       const { data: docData, error: docError } = await SiniestroDAO.addDocument({
         siniestro_id: id,
-        tipo: 'Habilitante', // Puede ser dinámico
-        url: publicUrl,
+        tipo: 'Habilitante',
+        url: filePath, // STORE PATH
         hash: hash,
         estado_doc: 'Pendiente'
       })
 
       if (docError) throw docError
+
+      logger.info({
+        action: 'SUBIR_DOCUMENTO',
+        user: req.user.id,
+        role: req.user.app_metadata?.role,
+        resource: id,
+        file: fileName,
+        status: 'SUCCESS'
+      })
 
       res.status(201).json({
         success: true,
@@ -230,6 +282,15 @@ class SiniestroController {
         .single()
 
       if (error) throw error
+
+      logger.info({
+        action: 'ACTUALIZAR_ESTADO_SINIESTRO',
+        user: req.user.id,
+        role: req.user.app_metadata?.role,
+        resource: id,
+        new_state: estado,
+        status: 'SUCCESS'
+      })
 
       res.status(200).json({
         success: true,

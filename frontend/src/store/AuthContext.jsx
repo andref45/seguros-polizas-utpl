@@ -63,8 +63,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     setUser(null)
-    // Optional: Notify backend
-    // api.post('/auth/logout').catch(() => {}) 
+    return { success: true }
   }
 
   return (
