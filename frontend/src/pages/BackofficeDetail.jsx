@@ -51,6 +51,17 @@ export default function BackofficeDetail() {
                         <p><span className="font-medium">Cédula:</span> {claim.cedula_fallecido}</p>
                         <p><span className="font-medium">Causa:</span> {claim.causa || 'No especificada'}</p>
                     </div>
+
+                    <h2 className="font-bold text-lg mt-6 mb-4 border-t pt-4">Información del Reportante</h2>
+                    {claim.polizas?.usuarios ? (
+                        <div className="space-y-2">
+                            <p><span className="font-medium">Nombre:</span> {claim.polizas.usuarios.nombres} {claim.polizas.usuarios.apellidos}</p>
+                            <p><span className="font-medium">Teléfono:</span> {claim.polizas.usuarios.telefono || 'No registrado'}</p>
+                            <p><span className="font-medium">Email:</span> {claim.polizas.usuarios.email || 'No disponible'}</p>
+                        </div>
+                    ) : (
+                        <p className="text-gray-500 italic">Información de usuario no disponible.</p>
+                    )}
                 </div>
 
                 <div className="bg-white p-6 rounded-lg shadow">

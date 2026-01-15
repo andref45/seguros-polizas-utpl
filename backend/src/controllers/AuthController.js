@@ -1,5 +1,6 @@
 import supabase from '../config/supabase.config.js'
 import logger from '../config/logger.js'
+import { ROLES } from '../constants/roles.js'
 
 class AuthController {
 
@@ -25,6 +26,51 @@ class AuthController {
 
         } catch (error) {
             logger.error('Error in getMe', error)
+            res.status(500).json({ success: false, error: error.message })
+        }
+    }
+
+
+    static async getAllUsers(req, res) {
+        try {
+            // [FIX] Instantiate fresh client to guarantee Service Role Key usage and avoid shared state issues
+            const { createClient } = await import('@supabase/supabase-js')
+            const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            })
+
+            // 1. Fetch ALL Auth Users (Source of Truth for Accounts)
+            const { data: { users: authUsers }, error: authError } = await adminSb.auth.admin.listUsers()
+            if (authError) throw authError
+
+            // 2. Fetch Profiles to enrich
+            const { data: profiles, error: profileError } = await adminSb
+                .from('usuarios')
+                .select('id, nombres, apellidos, cedula, tipo_usuario')
+
+            if (profileError) {
+                logger.warn('Error fetching profiles, showing raw auth users', profileError)
+            }
+
+            // 3. Map Auth Users to Combined List
+            const combinedUsers = authUsers.map(authUser => {
+                const profile = profiles ? profiles.find(p => p.id === authUser.id) : null
+                return {
+                    id: authUser.id,
+                    email: authUser.email,
+                    nombres: profile?.nombres || 'Sin Nombre',
+                    apellidos: profile?.apellidos || '',
+                    cedula: profile?.cedula || 'S/C',
+                    tipo_usuario: profile?.tipo_usuario || 'user'
+                }
+            })
+
+            // Sort by email or name
+            combinedUsers.sort((a, b) => (a.email || '').localeCompare(b.email || ''))
+
+            res.json({ success: true, data: combinedUsers })
+        } catch (error) {
+            logger.error('Error in getAllUsers', error)
             res.status(500).json({ success: false, error: error.message })
         }
     }
@@ -81,6 +127,13 @@ class AuthController {
 
             logger.info(`User ${email} logged in successfully`)
 
+            // 5. Fetch Profile Data to enrich session
+            const { data: profile } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+
             res.status(200).json({
                 success: true,
                 data: {
@@ -89,7 +142,12 @@ class AuthController {
                     user: {
                         id: user.id,
                         email: user.email,
-                        role: role
+                        role: role,
+                        // Profile Data
+                        nombres: profile?.nombres || '',
+                        apellidos: profile?.apellidos || '',
+                        cedula: profile?.cedula || '',
+                        telefono: profile?.telefono || ''
                     }
                 }
             })
@@ -127,7 +185,7 @@ class AuthController {
                 email,
                 password,
                 options: {
-                    data: { role: tipo_usuario } // Guardar rol en metadata
+                    data: { role: ROLES.USER } // FORCE standard user role for self-registration. Ignore tipo_usuario for RBAC.
                 }
             })
 
@@ -148,7 +206,7 @@ class AuthController {
                     nombres,
                     apellidos,
                     telefono,
-                    tipo_usuario,
+                    tipo_usuario: ROLES.USER, // Enforce 'user' to satisfy constraint
                     fecha_nacimiento: fecha_nacimiento || '2000-01-01', // Fallback si no viene
                     direccion,
                     estado: 'activo'
@@ -175,6 +233,41 @@ class AuthController {
 
         } catch (error) {
             logger.error('Error register', error)
+            res.status(500).json({ success: false, error: error.message })
+        }
+    }
+    static async updateProfile(req, res) {
+        try {
+            const userId = req.user.id
+            const { nombres, apellidos, telefono, direccion, fecha_nacimiento } = req.body
+
+            // Update user profile in DB
+            const { data, error } = await supabase
+                .from('usuarios')
+                .update({
+                    nombres,
+                    apellidos,
+                    telefono,
+                    direccion,
+                    fecha_nacimiento
+                })
+                .eq('id', userId)
+                .select()
+                .single()
+
+            if (error) {
+                logger.error(`Error updating profile for user ${userId}`, error)
+                return res.status(500).json({ success: false, error: 'Error al actualizar el perfil' })
+            }
+
+            res.json({
+                success: true,
+                data,
+                message: 'Perfil actualizado exitosamente'
+            })
+
+        } catch (error) {
+            logger.error('Error in updateProfile', error)
             res.status(500).json({ success: false, error: error.message })
         }
     }

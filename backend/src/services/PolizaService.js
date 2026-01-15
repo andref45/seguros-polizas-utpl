@@ -1,4 +1,8 @@
 import PolizaDAO from '../dao/PolizaDAO.js'
+<<<<<<< HEAD
+=======
+import VigenciaDAO from '../dao/VigenciaDAO.js' // [NEW] RN001
+>>>>>>> dev-JeanVillav
 import PolizaRules from '../rules/PolizaRules.js'
 import BusinessRules from './BusinessRules.js'
 
@@ -40,10 +44,25 @@ class PolizaService {
     // Generar número de póliza único
     const numeroPoliza = this.generarNumeroPoliza()
 
-    // Calcular fechas de vigencia
+    // [NEW] RN002: Vigencia Activa check
+    const vigencia = await VigenciaDAO.findActive()
+    if (!vigencia) {
+      throw new Error('NO_VIGENCIA_ACTIVA: No se pueden contratar pólizas fuera del periodo de vigencia.')
+    }
+
+    // Calcular fechas de vigencia (RN001: Must match vigencia period)
     const fechaInicio = new Date()
-    const fechaFin = new Date()
-    fechaFin.setDate(fechaFin.getDate() + BusinessRules.POLIZA_VIGENCIA_DIAS)
+    // const fechaFin = new Date()
+    // fechaFin.setDate(fechaFin.getDate() + BusinessRules.POLIZA_VIGENCIA_DIAS)
+
+    // Instead of arbitrary 1 year, we clamp to Vigencia End Date (or use Business Rule).
+    // Assuming standard is 1 year but capped by Vigencia.
+    // For this academic model, insurance usually ends with the academic period.
+    const fechaFin = new Date(vigencia.fecha_fin)
+
+    if (fechaInicio > fechaFin) {
+      throw new Error('La vigencia actual ya ha expirado.')
+    }
 
     // Crear póliza
     const polizaData = {
@@ -54,7 +73,11 @@ class PolizaService {
       fecha_fin: fechaFin.toISOString(),
       estado: BusinessRules.ESTADOS_POLIZA.ACTIVA,
       prima_mensual: tipoPoliza.prima_mensual,
+<<<<<<< HEAD
       cobertura_total: tipoPoliza.cobertura_maxima
+=======
+      cobertura_total: tipoPoliza.cobertura_maxima // Mapped from TipoPoliza to satisfy NOT NULL constraint
+>>>>>>> dev-JeanVillav
     }
 
     const poliza = await PolizaDAO.create(polizaData)
@@ -103,12 +126,18 @@ class PolizaService {
   }
 
   static generarNumeroPoliza() {
+<<<<<<< HEAD
     // Generate shorter ID: POL-YYMM-XXXX (e.g., POL-2601-1234) -> 13 chars
     const date = new Date()
     const year = date.getFullYear().toString().substr(-2)
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
     return `POL-${year}${month}-${random}`
+=======
+    const timestamp = Date.now().toString().slice(-8)
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    return 'POL-' + timestamp + '-' + random
+>>>>>>> dev-JeanVillav
   }
 
   static calcularDiasRestantes(fechaFin) {

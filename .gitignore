@@ -31,3 +31,8 @@ Thumbs.db
 # Documentation files (temporary)
 INICIO_AQUI.md
 IMPLEMENTACION_SPRINT1.md
+
+# Debug scripts
+backend/debug_data.js
+backend/debug_order.js
+backend/debug_user_data.js

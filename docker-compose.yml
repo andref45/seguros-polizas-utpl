@@ -17,7 +17,9 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:3005/api
+        VITE_API_URL: http://localhost:3005/api
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
     container_name: seguros-frontend
     ports:
       - "8085:80"

@@ -20,9 +20,13 @@ export default function LoginPage() {
       const result = await login(email, password)
 
       if (result.success) {
-        navigate('/dashboard')
+        if (result.user.role === 'admin') {
+          navigate('/dashboard')
+        } else {
+          navigate('/info')
+        }
       } else {
-        setError(result.error?.message || 'Error al iniciar sesión')
+        setError(result.error || 'Error al iniciar sesión')
       }
     } catch (err) {
       setError('Error inesperado al iniciar sesión')

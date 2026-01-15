@@ -2,6 +2,8 @@ import { Router } from 'express'
 import multer from 'multer'
 import SiniestroController from '../controllers/SiniestroController.js'
 import { verifyToken, requireRole } from '../middleware/auth.middleware.js'
+import { ROLES } from '../constants/roles.js'
+import { authLimiter } from '../middleware/rateLimiter.js'
 
 const router = Router()
 
@@ -19,8 +21,10 @@ const upload = multer({
 })
 
 // Rutas
-router.post('/aviso', verifyToken, SiniestroController.registrarAviso)
+router.get('/todos', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros) // [NEW] Admin Only
+router.get('/mis-siniestros', verifyToken, SiniestroController.getMisSiniestros)
+router.post('/aviso', authLimiter, verifyToken, SiniestroController.registrarAviso) // Public/User intake with rate limit
 router.post('/:id/docs', verifyToken, upload.single('file'), SiniestroController.subirDocumento)
-router.patch('/:id', verifyToken, requireRole('admin'), SiniestroController.actualizarEstado) // Solo Admin cambia estado manualmente por ahora
+router.patch('/:id', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.actualizarEstado) // Solo Admin cambia estado manualmente por ahora
 
 export default router

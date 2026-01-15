@@ -1,0 +1,175 @@
+Posibles preguntas para la entrevista de hoy:
+
+- Cuando recibes un pedido o un siniestro, ¿cuál es el primer dato crítico que verificas siempre y por qué?
+
+Respuesta:
+
+primero la matricula, luego 
+
+- ¿En qué situaciones un pedido debería bloquearse automáticamente (datos incompletos, póliza vencida, etc.)?
+
+Respuesta: Deberia bloquearse al temrino de la vigencia, sinietsros de estudaintes que aun no se han liquidado pasada esa fecha, no se pierde el seguro, se puede pedir un caso comercial, si se puede registra o abrir un periodo en vigencia que ya se cerró
+
+- Si el asegurado reporta un siniestro: ¿qué campos mínimos necesitamos para aceptarlo y cuál es el error más común?
+
+Respuesta: Error comun.
+
+esta parte es solo del aviso → Nombre, cédula y fecha de defunción
+
+```markdown
+abiertos, en trámite y liquidados
+podemos tener en liquidación
+una cosa es siniestro y otra cosa es primas
+si quiero un analisi de siniestralidad, NO SE DEBE EXCEDER DEL 65% 
+ES UN CALCULO AUTOMATICO
+presencial y distancia 
+
+saber que tengo pendiente para poder pedir por ejemplo que no han entregado ddocumentos, controlar tiempos, si pido analisis de siniestralidad, 
+ validar 
+ cedula, cerfificado de defuncion, certificado de matricula, copia de cedula, poscion y cuentas bancarias
+ parte policial en caso de ser un accidente
+.
+```
+
+-Conoce algun software usado por otros seguros que haga lo que se requiere?
+
+Respuesta: ninguno, solo excel
+
+- ¿Qué reportes se usan de forma recurrente (diarios, semanales, mensuales) y para quién (tú, jefatura, auditoría)?
+
+Respuesta:  Muy variable, solo ella
+
+En cuanto a los Estados y bloqueos del flujo: ¿qué estados finales quieres para Pedido y Siniestro (p. ej. Nuevo/EnValidación/Clasificado/EnGestión/Cerrado y Reportado/EnEvaluación/Aprobado/Rechazado/Cerrado) y qué condiciones bloquean o permiten cada transición? (Ej.: sin validarPoliza exitosa no se crea siniestro; evidencias obligatorias por tipo; duplicados de evento.)
+
+Respuesta:
+
+Reportado, en tramite y pagado 
+
+Cuales son los tipos de archivos por registro/acontecimiento, cuantos
+
+Solo PDFs
+
+Cuál es el periodo de vigencia de cada tipo de póliza y cómo se renuevan?
+
+Respuesta: 
+
+¿Qué reportes son críticos para operación diaria y con qué frecuencia se generan?
+
+Repuesta:
+
+Solo fallecidos, gestionar seguros de vida de estudiantes, solo PDFs
+
+## Contexto final:
+
+El alcance es manejo y gestión de polizas de vida de personas, enfocado coomo proceso completo en el seguro de vida de estudaintes, objetivo conocer vigencias , pagos, timepos de pago y conocer que abarca cada una de esas polizas, reporte en tiempo real por que estso son pagos mnsuales, hacer calcula i tabla para descuentos por seguro de empleados que es copagado, hasta el 15 de cada em se necesita tabla para saber que descuento, 70/30, 65/35….. Finalmente luego de tener toda esta gestion, se necesita gestion de sineitros, la idea es crear una cuenta para reportar un sineistro y que el llegue a ella ya que sus correos de gmail no funcionan a veces, se necesita luego reporteria para saber cuanto ha pagado, cuanto debo, cuanto ha descontado, cuanto he pagado en siniestros y poder ver empleados asegurados, estudiantes y separar por niveles (administrativos, presencial, distancia) ella nos dará tabla básica como plantilla alimentada por ella en una base simulada, nos dará condiciones de que quiere y qué. tener en cuenta las vigencias que son anuales, el proceso es repetitivo pero el reporte es nuevo de ese año, se cierran vigencias se abren otra para que a futuro se le pida un comparativo ella pueda tener la informacion.
+
+Cuando emiten nua factura, en el dpto finacioero lo atan a un documento, en el dpto finaciero los enlazan a esos dos ids, ella necesita saber esos id atados, se ata documento y factura, esto seria un campo manual que va a llenar ella, la factura la tiene Manual, ella la toma saca el dato y lo debe ingresar en nuestro sistema,
+
+Mapa de capacidades (TOGAF).
+
+![image.png](attachment:ef87013a-0853-4520-95eb-5046b3a1eabc:image.png)
+
+Diagrama de casos de uso (vista de escenarios) + descripciones textuales de cada caso.
+
+![image.png](attachment:c97a26fd-29d6-4a93-b559-0c7285725e5e:image.png)
+
+Diagrama de clases (vista lógica) (atributos, métodos, relaciones).
+
+![image.png](attachment:467b0ff9-ae15-492d-bbdb-7eee13f3df65:image.png)
+
+Diagrama de secuencia (vista de procesos) para el escenario de "Solicitar préstamo".
+
+![image.png](attachment:678d1c1d-f936-468b-9f68-cddff0c0fefe:image.png)
+
+Diagrama de componentes y paquetes (vista de desarrollo) que refleje módulos, dependencias y artefactos.
+
+![image.png](attachment:7ee4a2c8-c34b-435f-9cfb-5490529fe4a0:image.png)
+
+Diagrama de despliegue (vista de despliegue) mostrando nodos, contenedores y artefactos.
+
+![image.png](attachment:9ca9317b-dba8-4800-ae51-a66b8dd5828e:image.png)
+
+### A. Módulo: Gestión de Pólizas (RN001 - RN002)
+
+**Contexto:** Ciclo de vida de la póliza (registro, renovación).
+
+- 
+    
+    **RN001: Vigencia Exacta y Fechas**
+    
+    - **Regla :** Una póliza solo puede ser creada si las fechas de inicio y fin corresponden al periodo académico o fiscal activo actual. No se permiten fechas retroactivas ni futuras fuera del rango permitido.
+    - **Requisito Funcional :** El sistema debe validar que `fecha_inicio` y `fecha_fin` estén dentro del rango configurado en la tabla `vigencias` antes de permitir un `INSERT`.
+- 
+    
+    **RN002: Bloqueo de Altas / Estado Inicial**
+    
+    - **Regla :** El sistema debe bloquear la creación de nuevas pólizas si el periodo de "Gestión de Vigencias" está cerrado. Toda póliza nueva nace con estado "Activa" o "Pendiente de Pago".
+    - **Requisito Funcional :** El sistema debe consultar el estado del periodo actual; si es `cerrado`, el botón de registro debe deshabilitarse o el backend debe retornar error.
+
+### B. Módulo: Gestión de Pagos (RN003 - RN005)
+
+**Contexto:** Procesamiento de cobros y nómina.
+
+- 
+    
+    **RN003: Cálculo de Copago y Distribución**
+    
+    - **Regla :** El sistema debe calcular automáticamente la división del costo. Según la descripción, puede ser 70/30 o 65/35 entre la institución y el asegurado, más un porcentaje fijo de copago (ej. 10% o 20%).
+    - **Requisito Funcional :** Al registrar un pago, el sistema debe aplicar la fórmula: `Total = (Monto * %Coaseguro) + Copago Fijo`.
+- **RN004: Validación de Montos Positivos**
+    - **Regla :** No se pueden procesar pagos con valores negativos o cero. El monto a pagar debe coincidir con la deuda pendiente.
+    - **Requisito Funcional :** Validar que `input_monto > 0` y `input_monto <= saldo_pendiente`.
+- 
+    
+    **RN005: Fecha Límite y Corte de Nómina**
+    
+    - **Regla :** Los pagos deben realizarse antes del día 5 del mes. Además, las novedades para descuento por nómina se cortan el día 15.
+    - **Requisito Funcional :** Si `fecha_actual > dia_5`, el sistema debe marcar el pago como "Extemporáneo" o generar una alerta de mora. El sistema debe generar un archivo de exportación con todos los movimientos hasta el día 15.
+
+### C. Módulo: Gestión de Siniestros (RN006 - RN007)
+
+**Contexto:** Reclamos y seguros.
+
+- 
+    
+    **RN006: Elegibilidad de Siniestro**
+    
+    - **Regla :** Solo se puede reportar un siniestro si la póliza asociada está en estado "Activa" y el usuario está "al día" en sus pagos.
+    - **Requisito Funcional :** Antes de abrir el formulario de siniestro, el sistema debe consultar `poliza.estado` y `pagos.pendientes`. Si hay deuda, bloquear el reporte.
+- 
+    
+    **RN007: Integridad de Evidencias**
+    
+    - **Regla :** Un siniestro no puede cambiar a estado "En Revisión" si no tiene adjuntos los documentos obligatorios (facturas, informes médicos) en el Storage.
+    - **Requisito Funcional :** El sistema debe impedir el `submit` del formulario si la lista de archivos adjuntos está vacía o los archivos no se han subido correctamente a Supabase Storage.
+
+### D. Módulo: Gestión de Reportes (RN008 - RN009)
+
+**Contexto:** Estadísticas y exportación.
+
+- 
+    
+    **RN008: Coherencia de Datos en Reportes**
+    
+    - **Regla :** Los reportes solo deben incluir pólizas "Vigentes" o "Cerradas" formalmente, excluyendo borradores o pólizas anuladas por error, para no alterar las estadísticas financieras.
+    - **Requisito Funcional :** Las consultas SQL de los reportes deben incluir siempre la cláusula `WHERE estado IN ('Activa', 'Cerrada', 'Vencida')`.
+- **RN009: Privacidad de Datos (Data Masking)**
+    - **Regla :** Al exportar reportes generales, no se deben mostrar datos sensibles (como enfermedades preexistentes o cuentas bancarias completas) a usuarios con rol de "Analista", solo a "Administradores".
+    - **Requisito Funcional Infrido:** El generador de PDF/Excel debe verificar el rol del usuario y ofuscar columnas sensibles si no tiene privilegios de Admin.
+
+### E. Módulo: Autenticación (RN010 - RN011)
+
+**Contexto:** Seguridad.
+
+- 
+    
+    **RN010: Sesión Única**
+    
+    - **Regla :** Un mismo usuario no puede tener dos sesiones activas simultáneamente. Si inicia sesión en otro navegador, la sesión anterior debe cerrarse.
+    - **Requisito Funcional :** Al hacer `login`, el sistema debe buscar en la tabla `sesiones` si existe una activa para ese `user_id` e invalidarla (update `estado = 'cerrado'`) antes de crear la nueva.
+- 
+    
+    **RN011: Control de Acceso Basado en Roles (RBAC)**
+    
+    - **Regla :** Los menús y botones de acción (ej. "Aprobar Siniestro") solo deben ser visibles y ejecutables por los roles autorizados definidos en el `GestorSeguridad`.
+    - **Requisito Funcional :** El Middleware del backend debe interceptar cada petición y verificar `verificarPermiso(rol)` antes de ejecutar el controlador.

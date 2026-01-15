@@ -5,7 +5,7 @@ class PagoDAO {
     const { data, error } = await supabase
       .from('pagos')
       .select('*, polizas(*, tipos_poliza(*))')
-      .order('created_at', { ascending: false })
+
 
     if (error) throw error
     return data
@@ -27,7 +27,7 @@ class PagoDAO {
       .from('pagos')
       .select('*')
       .eq('poliza_id', polizaId)
-      .order('fecha_pago', { ascending: false })
+
 
     if (error) throw error
     return data
@@ -38,7 +38,7 @@ class PagoDAO {
       .from('pagos')
       .select('*, polizas!inner(*, tipos_poliza(*))')
       .eq('polizas.usuario_id', usuarioId)
-      .order('created_at', { ascending: false })
+
 
     if (error) throw error
     return data
@@ -119,7 +119,7 @@ class PagoDAO {
     const { data, error } = await supabase
       .from('pagos')
       .select('*, polizas(numero_poliza, usuarios(nombres, apellidos, cedula)), documentos_financieros(*)')
-      .order('fecha_pago', { ascending: false })
+
 
     if (error) throw error
     return data

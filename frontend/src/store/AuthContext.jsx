@@ -20,18 +20,43 @@ export function AuthProvider({ children }) {
         setUser(JSON.parse(storedUser))
 
         // Optional: Verify token validity with backend
-        // try {
-        //   const res = await api.get('/auth/me')
-        //   setUser(res.data.data)
-        // } catch (e) {
-        //   logout()
-        // }
+        try {
+          const res = await api.get('/auth/me')
+          // Update user with fresh data from DB (profile + auth)
+          if (res.data.success) {
+            setUser({ ...res.data.data, token: storedToken })
+            // Update local storage too to keep it fresh
+            localStorage.setItem('user', JSON.stringify({ ...res.data.data, token: storedToken }))
+          }
+        } catch (e) {
+          console.warn('Session verification failed, logging out...', e)
+          logout()
+        }
       }
     } catch (error) {
       console.error('Error restoring session:', error)
       localStorage.clear()
     } finally {
       setLoading(false)
+    }
+  }
+
+  const register = async (email, password, userData) => {
+    try {
+      // 1. Register User
+      const resValCallback = await api.post('/auth/register', { email, password, ...userData })
+
+      if (!resValCallback.data.success) {
+        throw new Error(resValCallback.data.error || 'Error en registro')
+      }
+
+      // 2. Auto-Login to get token
+      return await login(email, password)
+
+    } catch (error) {
+      console.error('Register error:', error)
+      const msg = error.response?.data?.error || error.message
+      return { success: false, error: msg }
     }
   }
 
@@ -50,39 +75,9 @@ export function AuthProvider({ children }) {
 
       setUser(user)
 
-      return { success: true }
+      return { success: true, user }
     } catch (error) {
       console.error('Login error:', error)
-      const msg = error.response?.data?.error || error.message
-      return { success: false, error: msg }
-    }
-  }
-
-  const register = async (email, password, userData) => {
-    try {
-      const response = await api.post('/auth/register', {
-        email,
-        password,
-        ...userData
-      })
-
-      const { user, token, refreshToken } = response.data.data
-
-      if (!user || !token) {
-        // Some registrations might require email confirmation first, so no token yet.
-        // But our flow seems to auto-login.
-        return { success: true, message: 'Registro exitoso' }
-      }
-
-      localStorage.setItem('token', token)
-      localStorage.setItem('refreshToken', refreshToken)
-      localStorage.setItem('user', JSON.stringify(user))
-
-      setUser(user)
-
-      return { success: true }
-    } catch (error) {
-      console.error('Register error:', error)
       const msg = error.response?.data?.error || error.message
       return { success: false, error: msg }
     }
@@ -93,8 +88,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     setUser(null)
-    // Optional: Notify backend
-    // api.post('/auth/logout').catch(() => {}) 
+    return { success: true }
   }
 
   return (

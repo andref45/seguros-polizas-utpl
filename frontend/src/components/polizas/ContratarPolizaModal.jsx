@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { FaTimes, FaFileContract, FaDollarSign, FaShieldAlt, FaCalendar } from 'react-icons/fa'
 
-export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm }) {
+export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm, users = [], isAdmin = false }) { // [NEW] added props
   const [loading, setLoading] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState('') // [NEW]
+  const [searchTerm, setSearchTerm] = useState('') // [NEW] Search State
 
   const formatMoney = (amount) => {
     return new Intl.NumberFormat('es-EC', {
@@ -18,8 +20,12 @@ export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm })
   }
 
   const handleConfirm = async () => {
+    if (isAdmin && !selectedUserId) {
+      alert('Por favor seleccione un usuario para asignar la póliza.')
+      return
+    }
     setLoading(true)
-    await onConfirm(tipoPoliza.id)
+    await onConfirm(tipoPoliza.id, selectedUserId || null) // Pass selectedUserId
     setLoading(false)
   }
 
@@ -45,6 +51,48 @@ export default function ContratarPolizaModal({ tipoPoliza, onClose, onConfirm })
             </h3>
             <p className="text-blue-800">{tipoPoliza.descripcion}</p>
           </div>
+
+          {/* ADMIN: Select User */}
+          {isAdmin && (
+            <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Asignar Póliza a Usuario (Admin)</label>
+
+              {/* Search Box */}
+              <input
+                type="text"
+                placeholder="Buscar por cédula..."
+                className="w-full p-2 mb-2 border rounded text-sm focus:ring-2 focus:ring-yellow-500 outline-none"
+                maxLength="10"
+                value={searchTerm}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '')
+                  if (val.length <= 10) setSearchTerm(val)
+                }}
+              />
+
+              <select
+                className="w-full p-2 border rounded"
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+              >
+                <option value="">-- Seleccione un usuario --</option>
+                {users
+                  .filter(u => {
+                    // Search by cedula (if exists) or email
+                    const term = searchTerm.toLowerCase()
+                    const cedula = u.cedula ? u.cedula.toLowerCase() : ''
+                    const email = u.email ? u.email.toLowerCase() : ''
+                    return cedula.includes(term) || email.includes(term)
+                  })
+                  .map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.cedula !== 'S/C' ? u.cedula : 'S/C'} - {u.apellidos} {u.nombres} ({u.email})
+                    </option>
+                  ))}
+              </select>
+              {users.filter(u => u.cedula.includes(searchTerm)).length === 0 && <p className="text-xs text-red-500 mt-1">No se encontraron usuarios con esa cédula.</p>}
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-lg">

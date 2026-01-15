@@ -1,26 +1,27 @@
 import express from 'express'
 import PolizaController from '../controllers/PolizaController.js'
-import authMiddleware from '../middleware/authMiddleware.js'
+import { verifyToken, requireRole } from '../middleware/auth.middleware.js'
+import { ROLES } from '../constants/roles.js'
 
 const router = express.Router()
 
 // Todas las rutas requieren autenticación
-router.use(authMiddleware)
+router.use(verifyToken)
 
 // Obtener tipos de pólizas disponibles
 router.get('/tipos', PolizaController.getTiposPoliza)
 
-// Obtener mis pólizas
+// Obtener mis pólizas - USER allowed
 router.get('/mis-polizas', PolizaController.getMisPolizas)
 
 // Obtener póliza por ID
 router.get('/:id', PolizaController.getPolizaById)
 
-// Contratar nueva póliza
-router.post('/contratar', PolizaController.contratarPoliza)
+// Contratar nueva póliza - ADMIN ONLY
+router.post('/contratar', requireRole(ROLES.ADMIN), PolizaController.contratarPoliza)
 
-// Cancelar póliza
-router.put('/:id/cancelar', PolizaController.cancelarPoliza)
+// Cancelar póliza - ADMIN ONLY
+router.put('/:id/cancelar', requireRole(ROLES.ADMIN), PolizaController.cancelarPoliza)
 
 // Verificar vigencia de póliza
 router.get('/:id/vigencia', PolizaController.verificarVigencia)

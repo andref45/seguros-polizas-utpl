@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { supabase } from '../services/supabaseClient'
+import api from '../services/api'
 import { FaUser, FaEnvelope, FaPhone, FaMapMarkerAlt, FaIdCard, FaBirthdayCake, FaEdit, FaSave, FaTimes } from 'react-icons/fa'
 
 export default function PerfilPage() {
@@ -29,13 +29,9 @@ export default function PerfilPage() {
       setLoading(true)
       setError('')
 
-      const { data, error: profileError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profileError) throw profileError
+      const response = await api.get('/auth/me')
+      // Backend returns: { success: true, data: { ...user_profile } }
+      const data = response.data.data
 
       setPerfil(data)
       setFormData({
@@ -68,25 +64,24 @@ export default function PerfilPage() {
     setSaving(true)
 
     try {
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          nombres: formData.nombres,
-          apellidos: formData.apellidos,
-          telefono: formData.telefono,
-          direccion: formData.direccion,
-          fecha_nacimiento: formData.fecha_nacimiento
-        })
-        .eq('id', user.id)
+      const response = await api.put('/auth/profile', {
+        nombres: formData.nombres,
+        apellidos: formData.apellidos,
+        telefono: formData.telefono,
+        direccion: formData.direccion,
+        fecha_nacimiento: formData.fecha_nacimiento
+      })
 
-      if (updateError) throw updateError
+      // Update local state with returned data
+      const updatedProfile = response.data.data
+      setPerfil(updatedProfile)
 
       setSuccess('Perfil actualizado exitosamente')
       setEditing(false)
-      await loadProfile()
     } catch (err) {
       console.error('Error updating profile:', err)
-      setError('Error al actualizar el perfil')
+      const msg = err.response?.data?.error || 'Error al actualizar el perfil'
+      setError(msg)
     } finally {
       setSaving(false)
     }

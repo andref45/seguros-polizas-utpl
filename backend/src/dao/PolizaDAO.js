@@ -4,8 +4,8 @@ class PolizaDAO {
   static async findAll() {
     const { data, error } = await supabase
       .from('polizas')
-      .select('*, tipos_poliza(*), usuarios(*)')
-      .order('created_at', { ascending: false })
+      .select('*, tipos_poliza(*), usuarios(*), copagos_config(*)')
+
 
     if (error) throw error
     return data
@@ -14,7 +14,7 @@ class PolizaDAO {
   static async findById(id) {
     const { data, error } = await supabase
       .from('polizas')
-      .select('*, tipos_poliza(*), usuarios(*)')
+      .select('*, tipos_poliza(*), usuarios(*), copagos_config(*)')
       .eq('id', id)
       .single()
 
@@ -27,7 +27,7 @@ class PolizaDAO {
       .from('polizas')
       .select('*, tipos_poliza(*)')
       .eq('usuario_id', usuarioId)
-      .order('created_at', { ascending: false })
+
 
     if (error) throw error
     return data
@@ -45,7 +45,13 @@ class PolizaDAO {
   }
 
   static async create(polizaData) {
-    const { data, error } = await supabase
+    // [FIX] Instantiate fresh client to guarantee Service Role Key usage for inserts (Bypass RLS)
+    const { createClient } = await import('@supabase/supabase-js')
+    const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+
+    const { data, error } = await adminSb
       .from('polizas')
       .insert([polizaData])
       .select('*, tipos_poliza(*)')

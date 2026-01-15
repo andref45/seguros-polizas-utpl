@@ -73,7 +73,7 @@ export default function RegisterPage() {
       }
     } catch (err) {
       console.error('Error catch:', err)
-      setError('Error inesperado: ' + (err.message || err))
+      setError('Ocurrió un error inesperado al intentar registrarse. Por favor verifique sus datos o intente más tarde.')
     } finally {
       setLoading(false)
     }
@@ -200,23 +200,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="tipo_usuario" className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo de Usuario
-                </label>
-                <select
-                  id="tipo_usuario"
-                  name="tipo_usuario"
-                  value={formData.tipo_usuario}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                  disabled={loading}
-                >
-                  <option value="estudiante">Estudiante</option>
-                  <option value="empleado">Empleado</option>
-                </select>
-              </div>
+              {/* Role selector removed - defaults to USER in backend */}
 
               <div className="md:col-span-2">
                 <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-2">

@@ -1,10 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-    headers: {
-        'Content-Type': 'application/json'
-    }
+    baseURL: 'http://127.0.0.1:3000/api',
+    // headers: { 'Content-Type': 'application/json' } // Removed to let Axios handle FormData
 })
 
 // Request Interceptor: Attach Token

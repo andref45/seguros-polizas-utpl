@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { supabase } from '../services/supabaseClient'
+import api from '../services/api'
 import PagoForm from '../components/pagos/PagoForm'
 import PagosTable from '../components/pagos/PagosTable'
 import { FaMoneyBillWave, FaChartLine } from 'react-icons/fa'
@@ -25,15 +25,11 @@ export default function PagosPage() {
       setLoading(true)
       setError('')
 
-      const { data, error: pagosError } = await supabase
-        .from('pagos')
-        .select('*, polizas!inner(*, tipos_poliza(*))')
-        .eq('polizas.usuario_id', user.id)
-        .order('fecha_pago', { ascending: false })
+      const response = await api.get('/pagos/mis-pagos')
+      // Backend: { success: true, data: [...] }
+      const data = response.data.data || []
 
-      if (pagosError) throw pagosError
-
-      setPagos(data || [])
+      setPagos(data)
 
       // Calcular estadísticas
       const totalPagado = data
@@ -51,7 +47,7 @@ export default function PagosPage() {
       })
     } catch (err) {
       console.error('Error loading pagos:', err)
-      setError('Error al cargar pagos')
+      setError('Error al cargar pagos. Verifique su conexión.')
     } finally {
       setLoading(false)
     }

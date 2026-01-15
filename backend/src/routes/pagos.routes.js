@@ -1,35 +1,17 @@
-import express from 'express'
+import { Router } from 'express'
 import PagoController from '../controllers/PagoController.js'
-import authMiddleware from '../middleware/authMiddleware.js'
+import ReportesController from '../controllers/ReportesController.js' // [NEW]
+import { verifyToken, requireRole } from '../middleware/auth.middleware.js'
+import { ROLES } from '../constants/roles.js'
 
-const router = express.Router()
+const router = Router()
 
-// Todas las rutas requieren autenticación
-router.use(authMiddleware)
+router.post('/registrar', verifyToken, requireRole(ROLES.ADMIN), PagoController.registrarPago)
+router.get('/todos', verifyToken, requireRole(ROLES.ADMIN), PagoController.getAllPagos)
+router.get('/pendientes', verifyToken, PagoController.getPagosPendientes)
+router.get('/mis-pagos', verifyToken, PagoController.getMisPagos)
+router.get('/reporte-nomina', verifyToken, ReportesController.getReporteNomina) // [NEW] RN008 & RN009
 
-// Obtener mis pagos
-router.get('/mis-pagos', PagoController.getMisPagos)
-
-// Obtener pagos pendientes
-router.get('/pendientes', PagoController.getPagosPendientes)
-
-// Obtener TODOS los pagos (Dashboard Financiero)
-router.get('/todos', PagoController.getAllPagos)
-
-
-// Obtener pagos de una póliza específica
-router.get('/poliza/:polizaId', PagoController.getPagosByPoliza)
-
-// Registrar nuevo pago
-router.post('/registrar', PagoController.registrarPago)
-
-// Calcular coaseguro
-router.post('/calcular-coaseguro', PagoController.calcularCoaseguro)
-
-// Reporte Nómina (RN004) - Solo Rol Financiero (o Admin)
-router.get('/reporte-nomina', PagoController.generarReporteNomina)
-
-// Generar pagos pendientes para una póliza
-router.post('/poliza/:polizaId/generar-pendientes', PagoController.generarPagosPendientes)
+// router.post('/calc-coaseguro') // REMOVED
 
 export default router
