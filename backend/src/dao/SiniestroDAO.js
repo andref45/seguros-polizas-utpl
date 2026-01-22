@@ -51,21 +51,14 @@ class SiniestroDAO {
 
         let combined = [...byOwner]
 
+        // Legacy support for cedula_declarante removed as column no longer exists.
+        // If we need to support third-party reporters, we need a new schema approach (e.g. reporter_id).
+        // For now, we only return claims where the user is the policy holder.
+
         if (userCedula) {
-            const { data: byReporter, error: err2 } = await supabase
-                .from('siniestros')
-                .select('*, documentos(*), polizas(*)') // Left join here is fine
-                .eq('cedula_declarante', userCedula)
-
-            if (err2) throw err2
-
-            // Merge unique
-            byReporter.forEach(s => {
-                if (!combined.find(existing => existing.id === s.id)) {
-                    combined.push(s)
-                }
-            })
+            // Logic removed: column 'cedula_declarante' dropped from DB.
         }
+
 
         // Sort desc
         combined.sort((a, b) => new Date(b.fecha_siniestro) - new Date(a.fecha_siniestro))

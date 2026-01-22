@@ -6,6 +6,8 @@ import morgan from 'morgan'
 import polizaRoutes from './src/routes/polizas.routes.js'
 import pagoRoutes from './src/routes/pagos.routes.js'
 import siniestroRoutes from './src/routes/siniestros.routes.js'
+import reportesRoutes from './src/routes/reportes.routes.js'
+import reglasRoutes from './src/routes/reglas.routes.js'
 import authRoutes from './src/routes/auth.routes.js'
 import vigenciaRoutes from './src/routes/vigencias.routes.js'
 import supabase from './src/config/supabase.config.js'
@@ -83,6 +85,9 @@ app.use('/api/vigencias', vigenciaRoutes) // Public or Protected? User didn't sp
 app.use('/api/polizas', verifyToken, polizaRoutes)
 app.use('/api/pagos', verifyToken, pagoRoutes)
 app.use('/api/siniestros', verifyToken, siniestroRoutes)
+app.use('/api/reportes', verifyToken, reportesRoutes)
+app.use('/api/reglas', verifyToken, reglasRoutes)
+
 
 // Ruta 404
 app.use((req, res) => {

@@ -15,6 +15,15 @@ class PolizaController {
     }
   }
 
+  static async getAllPolizas(req, res, next) {
+    try {
+      const polizas = await PolizaService.getAllPolizas()
+      res.status(200).json({ success: true, data: polizas })
+    } catch (error) {
+      next(error)
+    }
+  }
+
   static async getMisPolizas(req, res, next) {
     try {
       const usuarioId = req.user.id
@@ -159,6 +168,50 @@ class PolizaController {
       if (error) throw error
 
       res.status(200).json({ success: true, data })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+
+  static async updatePoliza(req, res, next) {
+    try {
+      const { id } = req.params
+      const { estado, fecha_fin, prima_mensual } = req.body
+
+      const updates = {}
+      if (estado) updates.estado = estado
+      if (fecha_fin) updates.fecha_fin = fecha_fin
+      if (prima_mensual) updates.prima_mensual = prima_mensual
+
+      const { data, error } = await supabase
+        .from('polizas')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      res.status(200).json({ success: true, data, message: 'Póliza actualizada' })
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  static async deletePoliza(req, res, next) {
+    try {
+      const { id } = req.params
+
+      // Physical delete requested by Nancy
+      const { error } = await supabase
+        .from('polizas')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      res.status(200).json({ success: true, message: 'Póliza eliminada correctamente' })
     } catch (error) {
       next(error)
     }

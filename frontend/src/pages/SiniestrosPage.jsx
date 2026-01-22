@@ -565,6 +565,25 @@ export default function SiniestrosPage() {
                             {s.estado === 'Aprobado' && (
                               <span className="text-green-600 text-xs font-bold"><FaCheckCircle className="inline" /> Finalizado</span>
                             )}
+                            <button
+                              onClick={async () => {
+                                if (!confirm('¿Estás seguro de ELIMINAR este siniestro? Esta acción es irreversible.')) return
+                                try {
+                                  await api.delete(`/siniestros/${s.id}`)
+                                  alert('Siniestro eliminado')
+                                  loadAllSiniestros()
+                                } catch (e) {
+                                  alert('Error al eliminar')
+                                }
+                              }}
+                              className="bg-gray-200 hover:bg-red-600 hover:text-white text-gray-700 px-2 py-1 rounded text-xs ml-2"
+                              title="Eliminar Siniestro (Admin)"
+                            >
+                              Eliminar
+                            </button>
+                            {s.estado === 'Aprobado' && (
+                              <span className="text-green-600 text-xs font-bold"><FaCheckCircle className="inline" /> Finalizado</span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -575,6 +594,6 @@ export default function SiniestrosPage() {
           </div>
         )}
       </div>
-    </div>
+    </div >
   )
 }

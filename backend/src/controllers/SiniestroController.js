@@ -364,10 +364,31 @@ class SiniestroController {
       res.status(200).json({
         success: true,
         data,
-        message: `Estado actualizado a ${estado} `
+        message: `Estado actualizado a ${estado}`
       })
     } catch (error) {
       next(error)
+    }
+  }
+
+  static async deleteSiniestro(req, res, next) {
+    try {
+      const { id } = req.params
+      // Physical delete or soft delete? User said "eliminar".
+      // Usually dangerous, but requested.
+      const { error } = await supabase
+        .from('siniestros')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      logger.info(`Siniestro ${id} deleted by admin ${req.user.id}`)
+
+      res.status(200).json({ success: true, message: 'Siniestro eliminado correctamente' })
+    } catch (error) {
+      logger.error('Error deleting siniestro:', error)
+      res.status(500).json({ success: false, error: 'Error al eliminar siniestro' })
     }
   }
 }

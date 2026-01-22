@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FaHome, FaFileContract, FaExclamationTriangle, FaSignOutAlt, FaThLarge, FaMoneyBillWave } from 'react-icons/fa'
+import { FaHome, FaFileContract, FaExclamationTriangle, FaSignOutAlt, FaThLarge, FaMoneyBillWave, FaChartLine, FaCogs } from 'react-icons/fa'
 import { useAuth } from '../../store/AuthContext'
 
 export default function Sidebar() {
@@ -17,6 +17,8 @@ export default function Sidebar() {
         { path: '/siniestros', label: 'Gestión Siniestros', icon: <FaExclamationTriangle /> },
         { path: '/polizas', label: 'Gestión Pólizas', icon: <FaFileContract /> },
         { path: '/pagos', label: 'Gestión Pagos', icon: <FaMoneyBillWave /> },
+        { path: '/reportes', label: 'Reportes e Inteligencia', icon: <FaChartLine /> },
+        { path: '/reglas', label: 'Reglas de Negocio', icon: <FaCogs /> },
         { path: '/modules', label: 'Todos los Módulos', icon: <FaThLarge /> },
     ]
 

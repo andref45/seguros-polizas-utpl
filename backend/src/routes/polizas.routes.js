@@ -11,6 +11,9 @@ router.use(verifyToken)
 // Obtener tipos de pólizas disponibles
 router.get('/tipos', PolizaController.getTiposPoliza)
 
+// Obtener TODAS las pólizas (Admin)
+router.get('/', requireRole(ROLES.ADMIN), PolizaController.getAllPolizas)
+
 // Obtener mis pólizas - USER allowed
 router.get('/mis-polizas', PolizaController.getMisPolizas)
 
@@ -25,6 +28,12 @@ router.post('/contratar', requireRole(ROLES.ADMIN), PolizaController.contratarPo
 
 // Cancelar póliza - ADMIN ONLY
 router.put('/:id/cancelar', requireRole(ROLES.ADMIN), PolizaController.cancelarPoliza)
+
+// Editar Póliza (General) - ADMIN ONLY
+router.put('/:id', requireRole(ROLES.ADMIN), PolizaController.updatePoliza)
+
+// Eliminar póliza - ADMIN ONLY
+router.delete('/:id', requireRole(ROLES.ADMIN), PolizaController.deletePoliza)
 
 // Verificar vigencia de póliza
 router.get('/:id/vigencia', PolizaController.verificarVigencia)

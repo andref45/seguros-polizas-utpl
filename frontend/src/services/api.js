@@ -22,7 +22,13 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response && error.response.status === 401) {
-            // Token expired or invalid
+            // [FIX] Ignore 401 on login endpoint to allow UI to show "invalid credentials"
+            // config.url might be final full URL or relative, check both safe match
+            if (error.config && error.config.url && error.config.url.includes('/auth/login')) {
+                return Promise.reject(error)
+            }
+
+            // Token expired or invalid for other requests
             localStorage.removeItem('token')
             localStorage.removeItem('user')
             window.location.href = '/login'

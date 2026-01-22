@@ -12,6 +12,8 @@ import MisPolizasPage from './pages/MisPolizasPage'
 import PagosPage from './pages/PagosPage'
 import SiniestrosPage from './pages/SiniestrosPage'
 import ModulesPage from './pages/ModulesPage' // New
+import ReportesPage from './pages/admin/ReportesPage.jsx' // [NEW] Reports Module
+import ReglasPage from './pages/admin/ReglasPage.jsx' // [NEW] Business Rules Module
 import PerfilPage from './pages/PerfilPage'
 import InfoPage from './pages/InfoPage'
 
@@ -69,6 +71,16 @@ function App() {
             <Route path="modules" element={
               <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
                 <ModulesPage />
+              </PrivateRoute>
+            } />
+            <Route path="reportes" element={
+              <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
+                <ReportesPage />
+              </PrivateRoute>
+            } />
+            <Route path="reglas" element={
+              <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
+                <ReglasPage />
               </PrivateRoute>
             } />
 
