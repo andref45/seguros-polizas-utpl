@@ -33,6 +33,12 @@ class ReportesController {
 
             if (userError) throw userError
 
+            console.log('--- REPORT DEBUG ---')
+            console.log('Active Policies:', activePolicies)
+            console.log('Monthly Claims:', monthlyClaims)
+            console.log('Total Users:', totalUsers)
+            console.log('--------------------')
+
             res.status(200).json({
                 success: true,
                 data: {

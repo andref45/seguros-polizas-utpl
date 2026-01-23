@@ -6,6 +6,8 @@ export default function ModulesPage() {
         { title: 'Siniestros', desc: 'Gestión de reportes y aprobaciones', icon: <FaTools />, color: 'bg-red-500', path: '/siniestros' },
         { title: 'Pólizas', desc: 'Administración de contratos', icon: <FaFileInvoice />, color: 'bg-blue-500', path: '/polizas' },
         { title: 'Pagos', desc: 'Control de recaudación', icon: <FaChartBar />, color: 'bg-green-500', path: '/pagos' },
+        { title: 'Reportes', desc: 'Inteligencia de Negocio', icon: <FaChartBar />, color: 'bg-purple-500', path: '/reportes' },
+        { title: 'Reglas', desc: 'Configuración del sistema', icon: <FaTools />, color: 'bg-orange-500', path: '/reglas' },
     ]
 
     return (
