@@ -122,14 +122,14 @@ npm run dev
 graph TD
     User((Usuario))
     subgraph "Docker Host (Local)"
-        Frontend[Frontend Container<br>React + Nginx<br>Port: 8085]
-        Backend[Backend Container<br>Node.js + Express<br>Port: 3005]
+        Frontend["Frontend Container<br>React + Nginx<br>Port: 8085"]
+        Backend["Backend Container<br>Node.js + Express<br>Port: 3005"]
     end
-    DB[(Supabase SaaS<br>PostgreSQL + Storage)]
+    DB[("Supabase SaaS<br>PostgreSQL + Storage")]
 
-    User -->|Browser HTTP| Frontend
-    Frontend -->|REST API (Internal Network)| Backend
-    Backend -->|Postgres Wire / HTTPS| DB
+    User -- "Browser HTTP" --> Frontend
+    Frontend -- "REST API (Internal Network)" --> Backend
+    Backend -- "Postgres Wire / HTTPS" --> DB
 ```
 
 ### 2. Diagrama de Componentes (Backend Core)
