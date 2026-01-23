@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
 import { FaEye, FaSearch, FaFilter, FaCheckCircle, FaClock, FaMoneyBillWave, FaExclamationCircle } from 'react-icons/fa'
 
@@ -10,18 +11,20 @@ export default function BackofficeDashboard() {
     const navigate = useNavigate()
 
     useEffect(() => {
-        // Simulate API fetch
-        setLoading(true)
-        setTimeout(() => {
-            // Mock data used until API is confirmed
-            setClaims([
-                { id: 'SIN-2024-001', cedula_fallecido: '1105001234', fecha_defuncion: '2024-01-10', estado: 'Reportado', polizas: { usuarios: { nombres: 'Juan', apellidos: 'Perez', email: 'juan@mail.com', telefono: '0999999999' } } },
-                { id: 'SIN-2024-002', cedula_fallecido: '1105005678', fecha_defuncion: '2024-01-12', estado: 'En_tramite', polizas: { usuarios: { nombres: 'Maria', apellidos: 'Lopez', email: 'maria@mail.com', telefono: '0988888888' } } },
-                { id: 'SIN-2024-003', cedula_fallecido: '1105009012', fecha_defuncion: '2024-01-05', estado: 'Pagado', polizas: { usuarios: { nombres: 'Carlos', apellidos: 'Diaz', email: 'carlos@mail.com', telefono: '0977777777' } } },
-                { id: 'SIN-2024-004', cedula_fallecido: '1105003456', fecha_defuncion: '2024-01-14', estado: 'Reportado', polizas: { usuarios: { nombres: 'Ana', apellidos: 'Torres', email: 'ana@mail.com', telefono: '0966666666' } } },
-            ])
-            setLoading(false)
-        }, 1000)
+        const fetchClaims = async () => {
+            try {
+                setLoading(true)
+                const response = await api.get('/siniestros')
+                if (response.data.success) {
+                    setClaims(response.data.data)
+                }
+            } catch (error) {
+                console.error('Error fetching claims:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchClaims()
     }, [])
 
     const maskData = (text) => {
