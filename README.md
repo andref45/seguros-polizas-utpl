@@ -111,3 +111,86 @@ npm run dev
 
 **Autor**: Equipo de Desarrollo UTPL
 **Versión**: 2.0.0 (Propuesta B1 Completa)
+
+---
+
+## 📐 Diagramas de Arquitectura
+
+### 1. Arquitectura del Sistema (Contenedores)
+
+```mermaid
+graph TD
+    User((Usuario))
+    subgraph "Docker Host (Local)"
+        Frontend[Frontend Container<br>React + Nginx<br>Port: 8085]
+        Backend[Backend Container<br>Node.js + Express<br>Port: 3005]
+    end
+    DB[(Supabase SaaS<br>PostgreSQL + Storage)]
+
+    User -->|Browser HTTP| Frontend
+    Frontend -->|REST API (Internal Network)| Backend
+    Backend -->|Postgres Wire / HTTPS| DB
+```
+
+### 2. Diagrama de Componentes (Backend Core)
+
+```mermaid
+classDiagram
+    note "Módulos Principales de Lógica de Negocio"
+    
+    class SiniestrosRoutes
+    class SiniestroController {
+        +create()
+        +getAll()
+    }
+    class AccessControlService {
+        +checkMorosity(polizaId)
+    }
+    class SiniestroService {
+        +createSiniestro(data)
+    }
+    class FinancialService {
+        +calculateCopago(monto)
+        +checkExtemporaneous(fecha)
+    }
+    
+    SiniestrosRoutes --> SiniestroController
+    SiniestroController ..> AccessControlService : RN006 Validación
+    SiniestroController --> SiniestroService
+    SiniestroService ..> FinancialService : RN005 Copagos / RN004 Extemporaneidad
+```
+
+### 3. Diagrama de Secuencia (Flujo Crítico: Registro de Siniestro)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Estudiante
+    participant FE as Frontend
+    participant API as Backend API
+    participant ACS as AccessControlService
+    participant SV as SiniestroService
+    participant DB as Supabase DB
+
+    User->>FE: Completa formulario de siniestro
+    FE->>API: POST /api/siniestros
+    
+    rect rgb(255, 240, 240)
+    note right of API: Validación RN006
+    API->>ACS: checkMorosity(polizaId)
+    end
+
+    alt Tiene Deuda Pendiente
+        ACS-->>API: throw Error("Póliza en Mora")
+        API-->>FE: 409 Conflict
+        FE-->>User: Muestra Alerta de Bloqueo
+    else Al Corriente
+        ACS-->>API: true
+        API->>SV: createSiniestro(data)
+        SV->>DB: INSERT into siniestros
+        DB-->>SV: id_siniestro
+        SV-->>API: Siniestro Object
+        API-->>FE: 201 Created
+        FE-->>User: Confirmación de Registro
+    end
+```
