@@ -129,3 +129,11 @@ Porque a veces estamos cerrando siniestros porque, a ver, no hay avisos, (8:11) 
 (1:28) Este será. (1:34) No. (1:38) Aquí, aquí creo que los tengo.
 (1:53) No, tampoco me los guardaría ni ver. (1:58) Buenas, hola. (2:00) ¿Una ruta? (2:27) Yo les busco, porque se dio un TDR completo, incluso se hizo una corrección.
 (2:33) Ok, nosotros creo que solo hemos pasado lo primero que tenemos que hacer ahorita.
+* Agregar botón para crear tipo de pólizas manualmente 
+* Causa de Muerte opcional (registrar siniestro)
+* Nombre del muerto (registrar siniestro)
+* Filtro de fechas en reportes
+* Documentos para subir son: Correo,copias de la cédula o partida de nacimiento(no ambas) == obligatorias, copias de cédula de difunto, partida de defunción, posesión efectiva, doc adicionales, informe médico, acta levantamiento cadaver, acta policial, prueba de alcoholemia y otros
+* Reporte de cuanto he pagado en pólizas al año 
+* Reporte de primas, seguro
+* Al crear siniestro campo de valor pagado

@@ -134,7 +134,7 @@ class SiniestroController {
 
   static async registrarAviso(req, res, next) {
     try {
-      const { cedula_fallecido, fecha_defuncion, causa, caso_comercial, nombre_declarante, cedula_declarante } = req.body
+      const { cedula_fallecido, nombre_fallecido, fecha_defuncion, causa, caso_comercial, nombre_declarante, cedula_declarante } = req.body
       let { poliza_id } = req.body
 
       const user = req.user // From middleware
@@ -154,8 +154,8 @@ class SiniestroController {
       }
 
       // 2. Validaciones Mínimas
-      if (!cedula_fallecido || !fecha_defuncion) {
-        return res.status(400).json({ success: false, error: 'Datos incompletos (Cédula fallecido, Fecha)' })
+      if (!cedula_fallecido || !nombre_fallecido || !fecha_defuncion) {
+        return res.status(400).json({ success: false, error: 'Datos incompletos (Nombre, Cédula fallecido, Fecha)' })
       }
 
       // 3. Guard Clause: Vigencia Activa (RN001/002)
@@ -199,6 +199,7 @@ class SiniestroController {
         poliza_id,
         numero_siniestro,
         cedula_fallecido,
+        nombre_fallecido, // [INDISPENSABLE]
         fecha_defuncion,
         causa: causa || null, // [MOD] Allow null cause
         descripcion: descripcion,
@@ -287,9 +288,10 @@ class SiniestroController {
       const filePath = fileName // `case -${ id } -${ Date.now() }.pdf`
 
       // Registrar en tabla documentos (Guardamos PATH en vez de URL pública)
+      const { tipo } = req.body // [MOD]
       const { data: docData, error: docError } = await SiniestroDAO.addDocument({
         siniestro_id: id,
-        tipo: 'Habilitante',
+        tipo: tipo || 'Habilitante',
         url: filePath, // STORE PATH
         hash: hash,
         estado_doc: 'Pendiente'

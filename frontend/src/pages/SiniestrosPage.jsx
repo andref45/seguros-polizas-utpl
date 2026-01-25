@@ -192,6 +192,7 @@ export default function SiniestrosPage() {
       setSuccess('Siniestro reportado y documentos subidos exitosamente.')
       setFormData({
         poliza_id: '',
+        nombre_fallecido: '', // [NEW]
         cedula_fallecido: '',
         fecha_defuncion: '',
         causa: '',
@@ -278,6 +279,20 @@ export default function SiniestrosPage() {
 
               {/* Póliza (Hidden Internal Logic) */}
               <input type="hidden" name="poliza_id" value={formData.poliza_id} />
+
+              {/* [NEW] Nombre Fallecido */}
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre Completo del Fallecido</label>
+                <input
+                  type="text"
+                  name="nombre_fallecido"
+                  value={formData.nombre_fallecido}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Nombres y Apellidos"
+                  className="w-full rounded-md border-gray-300 p-2 border"
+                />
+              </div>
 
               {/* Datos Fallecido + Verificación */}
               <div className="col-span-2 md:col-span-1">
