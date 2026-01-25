@@ -25,7 +25,9 @@ router.get('/todos', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.
 
 // Rutas Admin
 router.get('/', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros) // [NEW] Admin: Get All
+router.get('/:id', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getById) // [NEW] Admin: Detail
 router.put('/:id/estado', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.actualizarEstado)
+router.put('/:id/liquidacion', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.registrarLiquidacion) // [NEW] Liquidacion endpoint
 
 // Rutas Cliente
 router.get('/mis-siniestros', verifyToken, SiniestroController.getMisSiniestros)

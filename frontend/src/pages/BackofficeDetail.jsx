@@ -9,10 +9,19 @@ export default function BackofficeDetail() {
     const [loading, setLoading] = useState(true)
     const [processing, setProcessing] = useState(false)
 
-    // Mock data loader until GET /siniestros/{id} is ready
+    // Load Data
     useEffect(() => {
-        // Simulated load
-        setLoading(false)
+        const fetchDetail = async () => {
+            try {
+                const res = await api.get(`/siniestros/${id}`)
+                setClaim(res.data.data)
+            } catch (error) {
+                console.error('Error fetching detail:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        if (id) fetchDetail()
     }, [id])
 
     const handleUpdateStatus = async (newStatus) => {
@@ -69,7 +78,7 @@ export default function BackofficeDetail() {
                     <div className="flex gap-2">
                         <button
                             onClick={() => handleUpdateStatus('En_tramite')}
-                            disabled={claim.estado !== 'Reportado' || processing}
+                            disabled={(claim.estado !== 'Reportado' && claim.estado !== 'Pendiente') || processing}
                             className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
                         >
                             Procesar (En Trámite)

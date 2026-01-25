@@ -10,5 +10,6 @@ router.use(requireRole('admin'))
 
 router.get('/general', ReportesController.getResumenGeneral)
 router.get('/nomina', ReportesController.getReporteNomina)
+router.get('/siniestralidad', ReportesController.getSiniestralidad) // [NEW] KPI Siniestralidad
 
 export default router

@@ -10,7 +10,7 @@ class ReportesController {
             const { count: activePolicies, error: polError } = await supabase
                 .from('polizas')
                 .select('*', { count: 'exact', head: true })
-                .eq('estado', 'Activa')
+                .eq('estado', 'activa')
 
             if (polError) throw polError
 
@@ -77,7 +77,7 @@ class ReportesController {
                         porcentaje_usuario
                     )
                 `)
-                .eq('estado', 'Activa')
+                .eq('estado', 'activa')
 
             if (error) throw error
 
@@ -115,10 +115,60 @@ class ReportesController {
 
         } catch (error) {
             logger.error('Error fetching nomina report:', error)
-            import('fs').then(fs => {
-                fs.writeFileSync('error_reportes_2.json', JSON.stringify(error, null, 2))
-            })
             res.status(500).json({ success: false, error: 'Error al generar nómina' })
+        }
+    }
+
+    // GET /api/reportes/siniestralidad
+    static async getSiniestralidad(req, res, next) {
+        try {
+            const { anio, mesInicio, mesFin } = req.query
+
+            if (!anio) {
+                return res.status(400).json({ success: false, error: 'Año es requerido' })
+            }
+
+            // 1. Get Denominator: Total Facturas Real (Global Invoices)
+            // Import dynamically or assume it's available via import at top (need to add import)
+            const FacturasDAO = (await import('../dao/FacturasDAO.js')).default
+
+            const totalPrimas = await FacturasDAO.sumTotalByPeriod(anio, mesInicio, mesFin)
+
+            // 2. Get Numerator: Total Siniestros Pagados
+            let query = supabase
+                .from('siniestros')
+                .select('monto_pagado_seguro')
+                .eq('estado', 'Aprobado')
+                .not('monto_pagado_seguro', 'is', null) // Only liquidated ones
+
+            // Filter by liquidation date similar to period
+            // Complex date filtering in strings... simplified approach:
+            const startDate = new Date(anio, (mesInicio || 1) - 1, 1).toISOString()
+            const endDate = new Date(anio, (mesFin || 12), 0, 23, 59, 59).toISOString()
+
+            query = query.gte('fecha_liquidacion', startDate).lte('fecha_liquidacion', endDate)
+
+            const { data: siniestros, error: sinError } = await query
+            if (sinError) throw sinError
+
+            const totalSiniestros = siniestros.reduce((sum, s) => sum + (s.monto_pagado_seguro || 0), 0)
+
+            // 3. Calculate Ratio
+            const ratio = totalPrimas > 0 ? ((totalSiniestros / totalPrimas) * 100).toFixed(2) : 0
+
+            res.status(200).json({
+                success: true,
+                data: {
+                    anio,
+                    periodo: `${mesInicio || 1} - ${mesFin || 12}`,
+                    totalPrimasPagadas: totalPrimas,
+                    totalSiniestrosRecuperados: totalSiniestros,
+                    siniestralidad: parseFloat(ratio) // Percentage
+                }
+            })
+
+        } catch (error) {
+            next(error)
         }
     }
 }

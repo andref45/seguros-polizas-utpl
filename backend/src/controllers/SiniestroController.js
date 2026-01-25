@@ -6,8 +6,6 @@ import crypto from 'crypto'
 import logger from '../config/logger.js'
 import PolizaDAO from '../dao/PolizaDAO.js'
 
-
-
 class SiniestroController {
 
   // Paso 0: Obtener mis siniestros
@@ -50,7 +48,8 @@ class SiniestroController {
     }
   }
 
-  // Paso 1: Aviso de Siniestro
+  // Paso 1: Aviso de Siniestro (Admin Get All) - Fix name or split?
+  // The route points to verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros
   static async getAllSiniestros(req, res, next) {
     try {
       // Admin only - fetched via middleware
@@ -127,6 +126,7 @@ class SiniestroController {
         success: true,
         data
       })
+
     } catch (error) {
       next(error)
     }
@@ -187,11 +187,6 @@ class SiniestroController {
       }
 
       // 5. Preparar Datos (Sin 80/20, sin monto manual)
-      // Recuperar datos del declara desde el token/perfil (esto lo hace el front visible, aqui lo usamos para log/desc)
-      // Nota: No guardamos nombre_declarante en la tabla 'siniestros' explicitamente como columna separada segun schema anterior?
-      // El schema parece no tener columnas dedicadas a declarante, usaba 'descripcion' o tal vez las columnas existen pero no las vi en insert.
-      // Revisando el insert anterior: descripcion: `Declarado por ${ nombre_declarante }...`
-
       const descripcion = `Declarado por usuario ID: ${user.id} (${user.email || 'Sin Email'})`
 
       // Generate Numero Siniestro (SIN-YYYY-TIMESTAMP-RAND) to satisfy UNIQUE NOT NULL constraint
@@ -202,17 +197,22 @@ class SiniestroController {
 
       const siniestroData = {
         poliza_id,
-        numero_siniestro, // [NEW] Required field
+        numero_siniestro,
         cedula_fallecido,
         fecha_defuncion,
-        causa,
+        causa: causa || null, // [MOD] Allow null cause
         descripcion: descripcion,
-        monto_reclamado: 0, // El usuario ya no ingresa monto. Se determina administrativamente? O es 0 por defecto.
-        estado: 'Reportado',
-        fecha_siniestro: new Date(), // Fecha de registro del sistema
-        source: 'web', // Intake channel
-        // nombre_declarante, // REMOVED: Using relation polizas->usuarios instead
-        // cedula_declarante  // REMOVED: Using relation polizas->usuarios instead
+        monto_reclamado: 0,
+        estado: 'Pendiente', // [MOD] Strict PDF State
+        fecha_siniestro: new Date(),
+        source: 'web'
+      }
+
+      // 60-day Rule Check (Warning only)
+      const diffTime = Math.abs(new Date() - new Date(fecha_defuncion));
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays > 60) {
+        siniestroData.es_extemporaneo = true;
       }
 
       // 5. Insertar en BD
@@ -240,7 +240,8 @@ class SiniestroController {
       res.status(201).json({
         success: true,
         data,
-        message: 'Siniestro reportado exitosamente. Por favor suba los documentos habilitantes.'
+        warning: siniestroData.es_extemporaneo ? 'Atención: El siniestro ha sido reportado fuera del plazo de 60 días.' : null,
+        message: 'Siniestro registrado exitosamente (Estado: Pendiente). Por favor suba los documentos habilitantes.'
       })
 
     } catch (error) {
@@ -322,7 +323,8 @@ class SiniestroController {
       const { estado, monto_autorizado, monto_pagado } = req.body // "Nancy" inputs
 
       // Validar transición a 'En_tramite' (RN007)
-      if (estado === 'En_tramite') {
+      // Validar transición a 'Aprobado' (RN007 Strict)
+      if (estado === 'Aprobado') {
         // Verificar documentos
         const { count, error } = await supabase
           .from('documentos')
@@ -334,7 +336,7 @@ class SiniestroController {
         if (count === 0) {
           return res.status(400).json({
             success: false,
-            error: 'Bloqueo RN007: No se puede pasar a En Trámite sin documentos adjuntos.'
+            error: 'Bloqueo RN007: No se puede aprobar sin documentos adjuntos.'
           })
         }
       }
@@ -367,6 +369,118 @@ class SiniestroController {
         message: `Estado actualizado a ${estado}`
       })
     } catch (error) {
+      next(error)
+    }
+  }
+
+  static async registrarLiquidacion(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { monto_pagado_seguro, doc_liquidacion_url, fecha_liquidacion, beneficiarios_info } = req.body;
+
+      // Ensure Siniestro is Aprobado
+      const { data: current, error: fetchError } = await supabase
+        .from('siniestros')
+        .select('estado')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (current.estado !== 'Aprobado') {
+        return res.status(400).json({ success: false, error: 'Solo se pueden liquidar siniestros aprobados.' });
+      }
+
+      const updates = {
+        monto_pagado_seguro,
+        doc_liquidacion_url,
+        fecha_liquidacion: fecha_liquidacion || new Date(),
+        beneficiarios_info
+      };
+
+      const { data, error } = await supabase
+        .from('siniestros')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      logger.info({ action: 'LIQUIDAR_SINIESTRO', resource: id, user: req.user.id });
+
+      res.status(200).json({ success: true, data, message: 'Liquidación registrada correctamente' });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getById(req, res, next) {
+    try {
+      const { id } = req.params
+
+      // 1. Validate UUID to prevent 500 DB errors
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(id)) {
+        return res.status(400).json({ success: false, error: 'ID inválido' })
+      }
+
+      const { data, error } = await supabase
+        .from('siniestros')
+        .select(`
+          *,
+          documentos (*),
+          polizas (
+            id,
+            numero_poliza,
+            usuarios (
+              id,
+              nombres,
+              apellidos,
+              cedula,
+              telefono
+            )
+          )
+        `)
+        .eq('id', id)
+        .single()
+
+      if (error) {
+        logger.error('Error fetching siniestro details:', error)
+        throw error
+      }
+
+      // Sign URLs (Linked Docs)
+      if (data.documentos && data.documentos.length > 0) {
+        for (const doc of data.documentos) {
+          if (doc.url && !doc.url.startsWith('http')) {
+            const { data: signedData } = await supabase
+              .storage
+              .from('pdf-evidencias')
+              .createSignedUrl(doc.url, 3600)
+
+            if (signedData?.signedUrl) {
+              doc.url = signedData.signedUrl
+            }
+          }
+        }
+      }
+
+      // Sign URL (Liquidation Doc in Main Table)
+      if (data.doc_liquidacion_url && !data.doc_liquidacion_url.startsWith('http')) {
+        const { data: signedLiq } = await supabase
+          .storage
+          .from('pdf-evidencias')
+          .createSignedUrl(data.doc_liquidacion_url, 3600)
+
+        if (signedLiq?.signedUrl) {
+          data.doc_liquidacion_url = signedLiq.signedUrl
+        }
+      }
+
+      res.status(200).json({ success: true, data })
+    } catch (error) {
+      console.error('Full Error getById:', error)
       next(error)
     }
   }

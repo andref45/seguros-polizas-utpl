@@ -14,6 +14,52 @@ export default function SiniestrosPage() {
   const [searchTerm, setSearchTerm] = useState('') // [NEW] Search state
   const [success, setSuccess] = useState('')
 
+  // Liquidation Modal State
+  const [liquidarModalOpen, setLiquidarModalOpen] = useState(false)
+  const [selectedSiniestroForLiq, setSelectedSiniestroForLiq] = useState(null)
+  const [liquidarData, setLiquidarData] = useState({ monto: '', fecha: '', archivo: null })
+
+  const handleLiquidarSubmit = async (e) => {
+    e.preventDefault()
+    if (!selectedSiniestroForLiq) return
+    try {
+      setLoading(true)
+      // Upload Doc first
+      let docUrl = null
+      if (liquidarData.archivo) {
+        const uploadFormData = new FormData()
+        uploadFormData.append('file', liquidarData.archivo)
+        const upRes = await api.post(`/siniestros/${selectedSiniestroForLiq.id}/docs`, uploadFormData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        // Assuming the backend returns the new doc object, we need the URL or path.
+        // Actually, logic inside controller saves it as 'Habilitante'. 
+        // We need 'doc_liquidacion_url'.
+        // Let's assume the upload endpoint handles it generic. 
+        // We might need to manually set the URL if we want it in the 'siniestros' table column 'doc_liquidacion_url'.
+        // For strictness, we should use the URL returned/generated.
+        // Simplified: The backend endpoint updateLiquidacion expects 'doc_liquidacion_url'.
+        // If we use the generic upload, it goes to 'documentos' table.
+        // We can use the 'url' from the response.
+        docUrl = upRes.data.data.url
+      }
+
+      await api.put(`/siniestros/${selectedSiniestroForLiq.id}/liquidacion`, {
+        monto_pagado_seguro: liquidarData.monto,
+        fecha_liquidacion: liquidarData.fecha,
+        doc_liquidacion_url: docUrl
+      })
+
+      alert('Liquidación registrada correctamente')
+      setLiquidarModalOpen(false)
+      loadAllSiniestros()
+    } catch (err) {
+      alert('Error liquidando: ' + (err.response?.data?.error || err.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Form State
   const [formData, setFormData] = useState({
     poliza_id: '',
@@ -298,9 +344,17 @@ export default function SiniestrosPage() {
                   type="date"
                   name="fecha_defuncion"
                   value={formData.fecha_defuncion}
-                  onChange={handleInputChange}
+
                   required
                   className="w-full rounded-md border-gray-300 p-2 border"
+                  onChange={(e) => {
+                    handleInputChange(e)
+                    const diffTime = Math.abs(new Date() - new Date(e.target.value));
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    if (diffDays > 60) {
+                      alert('Advertencia: Han pasado más de 60 días desde la fecha de defunción. El reporte será marcado como extemporáneo.')
+                    }
+                  }}
                 />
               </div>
 
@@ -312,7 +366,8 @@ export default function SiniestrosPage() {
                   name="causa"
                   value={formData.causa}
                   onChange={handleInputChange}
-                  required
+
+                  // required // [MOD] Now Optional
                   placeholder="Ej. Accidente de tránsito, Enfermedad natural..."
                   className="w-full rounded-md border-gray-300 p-2 border"
                 />
@@ -581,8 +636,19 @@ export default function SiniestrosPage() {
                             >
                               Eliminar
                             </button>
-                            {s.estado === 'Aprobado' && (
-                              <span className="text-green-600 text-xs font-bold"><FaCheckCircle className="inline" /> Finalizado</span>
+                            {s.estado === 'Aprobado' && !s.monto_pagado_seguro && (
+                              <button
+                                onClick={() => {
+                                  setSelectedSiniestroForLiq(s)
+                                  setLiquidarModalOpen(true)
+                                }}
+                                className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs ml-2"
+                              >
+                                Liquidar
+                              </button>
+                            )}
+                            {s.estado === 'Aprobado' && s.monto_pagado_seguro && (
+                              <span className="text-green-600 text-xs font-bold block"><FaCheckCircle className="inline" /> Liquidado (${s.monto_pagado_seguro})</span>
                             )}
                           </td>
                         </tr>
@@ -594,6 +660,68 @@ export default function SiniestrosPage() {
           </div>
         )}
       </div>
+
+
+      {/* Modal Liquidación */}
+      {
+        liquidarModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-xl font-bold mb-4">Registrar Liquidación (Pago Aseguradora)</h3>
+              <form onSubmit={handleLiquidarSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium">Monto Indemnizado ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    className="w-full border p-2 rounded"
+                    value={liquidarData.monto}
+                    onChange={e => setLiquidarData({ ...liquidarData, monto: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Fecha Liquidación</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full border p-2 rounded"
+                    value={liquidarData.fecha}
+                    onChange={e => setLiquidarData({ ...liquidarData, fecha: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Finiquito / Comprobante (PDF)</label>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    required
+                    className="w-full text-sm"
+                    onChange={e => setLiquidarData({ ...liquidarData, archivo: e.target.files[0] })}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setLiquidarModalOpen(false)}
+                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                  >
+                    {loading ? 'Guardando...' : 'Confirmar Liquidación'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )
+      }
+
     </div >
   )
 }
