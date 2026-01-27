@@ -42,7 +42,13 @@ class SiniestroDAO {
         // or just fetch by cedula_declarante first, then fetch by policy owner, and merge?
         // Merging is safer/easier to debug.
 
-        const { data: byOwner, error: err1 } = await supabase
+        // [FIX] Use Service Role Key to bypass RLS and avoid 403 errors
+        const { createClient } = await import('@supabase/supabase-js')
+        const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        })
+
+        const { data: byOwner, error: err1 } = await adminSb
             .from('siniestros')
             .select('*, documentos(*), polizas!inner(*)')
             .eq('polizas.usuario_id', userId)

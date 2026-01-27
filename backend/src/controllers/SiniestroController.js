@@ -17,11 +17,14 @@ class SiniestroController {
         .from('usuarios')
         .select('cedula')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (userError) throw userError
 
-      const siniestros = await SiniestroDAO.findByUserIdOrCedula(userId, usuario.cedula)
+      // If user profile is missing in 'public.usuarios', handle duplicate handling logic carefully or fallback
+      const userCedula = usuario ? usuario.cedula : null
+
+      const siniestros = await SiniestroDAO.findByUserIdOrCedula(userId, userCedula)
 
       // Firmar URLs
       for (const s of siniestros) {
@@ -143,14 +146,16 @@ class SiniestroController {
       if (!poliza_id) {
         // Find first active policy for user
         const polizas = await PolizaDAO.findByUsuarioId(user.id)
+        logger.info(`[DEBUG] User ${user.id} has ${polizas?.length} policies. States: ${polizas?.map(p => p.estado).join(', ')}`)
         // Filter valid ones? Or just take the first one?
         // Assuming 'Activa' status check is done below or we pick the first one.
-        const activePoliza = polizas.find(p => p.estado === 'Activa') || polizas[0]
+        const activePoliza = polizas.find(p => p.estado === 'activa') || polizas[0]
 
         if (!activePoliza) {
           return res.status(400).json({ success: false, error: 'No tienes una póliza activa para reportar siniestros.' })
         }
         poliza_id = activePoliza.id
+        req.tempPoliza = activePoliza
       }
 
       // 2. Validaciones Mínimas
@@ -174,7 +179,7 @@ class SiniestroController {
 
       // 4. Guard Clause: Morosidad (RN006)
       // Verificar si el usuario está al día en sus pagos
-      const poliza = await PolizaDAO.findById(poliza_id)
+      const poliza = req.tempPoliza || await PolizaDAO.findById(poliza_id)
       if (!poliza) return res.status(404).json({ error: 'Póliza no encontrada' })
 
       const accessCheck = await AccessControlService.checkMorosity(poliza.id) // Pass Poliza ID, not User ID
@@ -221,7 +226,7 @@ class SiniestroController {
         .from('siniestros')
         .insert([siniestroData])
         .select()
-        .single()
+        .maybeSingle()
 
       if (error) {
         if (error.code === '23505') { // Unique violation
