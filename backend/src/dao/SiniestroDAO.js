@@ -2,7 +2,13 @@ import supabase from '../config/supabase.config.js'
 
 class SiniestroDAO {
     static async create(data) {
-        const { data: siniestro, error } = await supabase
+        // [FIX] Use Service Role Key to bypass RLS violations during INSERT
+        const { createClient } = await import('@supabase/supabase-js')
+        const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        })
+
+        const { data: siniestro, error } = await adminSb
             .from('siniestros')
             .insert(data)
             .select()
