@@ -61,7 +61,20 @@ class SiniestroDAO {
 
         if (err1) throw err1
 
-        let combined = [...byOwner]
+        // [FIX] Also find claims reported by this user (stored in description)
+        // Description format: "Declarado por usuario ID: <UUID> ..."
+        const { data: byReporter, error: err2 } = await adminSb
+            .from('siniestros')
+            .select('*, documentos(*), polizas!inner(*)')
+            .ilike('descripcion', `%${userId}%`)
+
+        if (err2) throw err2
+
+        // Merge and Deduplicate
+        const allClaims = [...byOwner, ...byReporter]
+        const uniqueClaims = Array.from(new Map(allClaims.map(item => [item.id, item])).values())
+
+        let combined = uniqueClaims
 
         // Legacy support for cedula_declarante removed as column no longer exists.
         // If we need to support third-party reporters, we need a new schema approach (e.g. reporter_id).
