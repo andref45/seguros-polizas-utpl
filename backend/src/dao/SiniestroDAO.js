@@ -8,12 +8,6 @@ class SiniestroDAO {
             auth: { autoRefreshToken: false, persistSession: false }
         })
 
-        if (!process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_SERVICE_KEY.length < 10) {
-            console.error('CRITICAL: SUPABASE_SERVICE_KEY is missing or invalid in Environment Variables!')
-        } else {
-            console.log('Using Service Key for Insert (Length:', process.env.SUPABASE_SERVICE_KEY.length, ')')
-        }
-
         const { data: siniestro, error } = await adminSb
             .from('siniestros')
             .insert(data)
