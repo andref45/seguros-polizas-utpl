@@ -78,9 +78,27 @@ app.get('/health', async (req, res) => {
 // Public Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/vigencias', vigenciaRoutes) // Public or Protected? User didn't specify, but safer to be public-read for active status check? Or protected? Let's verify requirements. 
-// "GET /vigencias/activa" needed for guard clause, which runs on POST /aviso (Authenticated). So likely protected or public. 
-// Given it blocks creation, public info is fine. But sticking to general protection if feasible.
-// For now, let's make it public so frontend can check before showing form.
+// "GET /vigencias/activa" needed for guard clause...
+
+// [TEMPORARY DEBUG] Verify Environment Config from Browser
+app.get('/api/debug-env', (req, res) => {
+  try {
+    const key = process.env.SUPABASE_SERVICE_KEY
+    if (!key) return res.json({ status: 'ERROR', message: 'Key Missing' })
+
+    const part = key.split('.')[1]
+    if (!part) return res.json({ status: 'ERROR', message: 'Invalid JWT Format' })
+
+    const payload = JSON.parse(Buffer.from(part, 'base64').toString())
+    return res.json({
+      status: 'OK',
+      role: payload.role, // SHOULD BE 'service_role'
+      key_length: key.length
+    })
+  } catch (e) {
+    return res.json({ status: 'ERROR', error: e.message })
+  }
+})
 
 // Protected Routes
 app.use('/api/polizas', verifyToken, polizaRoutes)
