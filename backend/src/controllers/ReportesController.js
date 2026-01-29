@@ -6,8 +6,14 @@ class ReportesController {
     // GET /api/reportes/general
     static async getResumenGeneral(req, res, next) {
         try {
+            // [FIX] Use Service Role Key to bypass RLS for Reports
+            const { createClient } = await import('@supabase/supabase-js')
+            const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            })
+
             // 1. Total Polizas Activas
-            const { count: activePolicies, error: polError } = await supabase
+            const { count: activePolicies, error: polError } = await adminSb
                 .from('polizas')
                 .select('*', { count: 'exact', head: true })
                 .eq('estado', 'activa')
@@ -19,7 +25,7 @@ class ReportesController {
             startOfMonth.setDate(1)
             startOfMonth.setHours(0, 0, 0, 0)
 
-            const { count: monthlyClaims, error: claimError } = await supabase
+            const { count: monthlyClaims, error: claimError } = await adminSb
                 .from('siniestros')
                 .select('*', { count: 'exact', head: true })
                 .gte('fecha_reporte', startOfMonth.toISOString())
@@ -27,7 +33,7 @@ class ReportesController {
             if (claimError) throw claimError
 
             // 3. Total Usuarios Registrados
-            const { count: totalUsers, error: userError } = await supabase
+            const { count: totalUsers, error: userError } = await adminSb
                 .from('usuarios')
                 .select('*', { count: 'exact', head: true })
 
@@ -56,10 +62,13 @@ class ReportesController {
     // GET /api/reportes/nomina
     static async getReporteNomina(req, res, next) {
         try {
-            // RN008: Only active policies
-            // RN005: Cutoff logic (simulated for report generation)
+            // [FIX] Use Service Role Key
+            const { createClient } = await import('@supabase/supabase-js')
+            const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            })
 
-            const { data: polizas, error } = await supabase
+            const { data: polizas, error } = await adminSb
                 .from('polizas')
                 .select(`
                     id,
@@ -135,7 +144,13 @@ class ReportesController {
             const totalPrimas = await FacturasDAO.sumTotalByPeriod(anio, mesInicio, mesFin)
 
             // 2. Get Numerator: Total Siniestros Pagados
-            let query = supabase
+            // [FIX] Use Service Role Key
+            const { createClient } = await import('@supabase/supabase-js')
+            const adminSb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY, {
+                auth: { autoRefreshToken: false, persistSession: false }
+            })
+
+            let query = adminSb
                 .from('siniestros')
                 .select('monto_pagado_seguro')
                 .eq('estado', 'Aprobado')
