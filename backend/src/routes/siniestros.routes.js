@@ -23,14 +23,16 @@ const upload = multer({
 // Rutas
 router.get('/todos', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros) // [NEW] Admin Only
 
-// Rutas Admin
-router.get('/', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros) // [NEW] Admin: Get All
-router.put('/:id/estado', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.actualizarEstado)
-
 // Rutas Cliente
 router.get('/mis-siniestros', verifyToken, SiniestroController.getMisSiniestros)
 router.post('/aviso', authLimiter, verifyToken, SiniestroController.registrarAviso) // Public/User intake with rate limit
-router.post('/:id/docs', verifyToken, upload.single('file'), SiniestroController.subirDocumento)
+
+// Rutas Admin
+router.get('/', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getAllSiniestros) // [NEW] Admin: Get All
+router.get('/:id', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.getById) // [NEW] Admin: Detail
+router.put('/:id/estado', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.actualizarEstado)
+router.put('/:id/liquidacion', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.registrarLiquidacion) // [NEW] Liquidacion endpoint
 router.patch('/:id', verifyToken, requireRole(ROLES.ADMIN), SiniestroController.actualizarEstado) // Solo Admin cambia estado manualmente por ahora
+router.post('/:id/docs', verifyToken, upload.single('file'), SiniestroController.subirDocumento)
 
 export default router

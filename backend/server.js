@@ -10,6 +10,7 @@ import reportesRoutes from './src/routes/reportes.routes.js'
 import reglasRoutes from './src/routes/reglas.routes.js'
 import authRoutes from './src/routes/auth.routes.js'
 import vigenciaRoutes from './src/routes/vigencias.routes.js'
+import facturasRoutes from './src/routes/facturas.routes.js'
 import supabase from './src/config/supabase.config.js'
 import logger from './src/config/logger.js'
 import limiter from './src/middleware/rateLimiter.js'
@@ -86,6 +87,7 @@ app.use('/api/polizas', verifyToken, polizaRoutes)
 app.use('/api/pagos', verifyToken, pagoRoutes)
 app.use('/api/siniestros', verifyToken, siniestroRoutes)
 app.use('/api/reportes', verifyToken, reportesRoutes)
+app.use('/api/facturas', verifyToken, facturasRoutes) // [NEW] Global Invoices
 app.use('/api/reglas', verifyToken, reglasRoutes)
 
 

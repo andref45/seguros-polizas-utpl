@@ -5,6 +5,7 @@ import { FaChartBar, FaFileDownload, FaUsers, FaExclamationTriangle, FaClipboard
 export default function ReportesPage() {
     const [stats, setStats] = useState(null)
     const [nomina, setNomina] = useState([])
+    const [siniestralidad, setSiniestralidad] = useState(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -13,12 +14,14 @@ export default function ReportesPage() {
 
     const loadData = async () => {
         try {
-            const [resGeneral, resNomina] = await Promise.all([
+            const [resGeneral, resNomina, resSiniestralidad] = await Promise.all([
                 api.get('/reportes/general'),
-                api.get('/reportes/nomina')
+                api.get('/reportes/nomina'),
+                api.get(`/reportes/siniestralidad?anio=${new Date().getFullYear()}`)
             ])
             setStats(resGeneral.data.data)
             setNomina(resNomina.data.data)
+            setSiniestralidad(resSiniestralidad.data.data)
         } catch (error) {
             console.error('Error cargando reportes:', error)
         } finally {
@@ -90,6 +93,19 @@ export default function ReportesPage() {
                     </div>
                     <div className="bg-green-50 p-3 rounded-full">
                         <FaUsers className="text-green-500 text-2xl" />
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500 flex items-center justify-between">
+                    <div>
+                        <p className="text-gray-500 text-sm font-medium">Siniestralidad Anual</p>
+                        <h3 className="text-3xl font-bold text-gray-800">{siniestralidad?.siniestralidad || 0}%</h3>
+                        <p className="text-xs text-gray-400 mt-1">
+                            Pagado: ${siniestralidad?.totalSiniestrosRecuperados} / Primas: ${siniestralidad?.totalPrimasPagadas}
+                        </p>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded-full">
+                        <FaChartBar className="text-purple-500 text-2xl" />
                     </div>
                 </div>
             </div>

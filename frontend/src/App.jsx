@@ -7,12 +7,14 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage' // Keeps user dashboard logic if needed elsewhere
 import BackofficeDashboard from './pages/BackofficeDashboard' // Import Admin Dashboard
+import BackofficeDetail from './pages/BackofficeDetail' // [NEW]
 import PolizasPage from './pages/PolizasPage'
 import MisPolizasPage from './pages/MisPolizasPage'
 import PagosPage from './pages/PagosPage'
 import SiniestrosPage from './pages/SiniestrosPage'
 import ModulesPage from './pages/ModulesPage' // New
 import ReportesPage from './pages/admin/ReportesPage.jsx' // [NEW] Reports Module
+import FacturasPage from './pages/admin/FacturasPage.jsx' // [NEW] Facturas Module
 import ReglasPage from './pages/admin/ReglasPage.jsx' // [NEW] Business Rules Module
 import PerfilPage from './pages/PerfilPage'
 import InfoPage from './pages/InfoPage'
@@ -52,6 +54,11 @@ function App() {
                 <BackofficeDashboard />
               </PrivateRoute>
             } />
+            <Route path="backoffice/siniestros/:id" element={
+              <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
+                <BackofficeDetail />
+              </PrivateRoute>
+            } />
             <Route path="polizas" element={
               <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
                 <PolizasPage />
@@ -76,6 +83,11 @@ function App() {
             <Route path="reportes" element={
               <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
                 <ReportesPage />
+              </PrivateRoute>
+            } />
+            <Route path="facturas" element={
+              <PrivateRoute allowedRoles={[ROLES.ADMIN]}>
+                <FacturasPage />
               </PrivateRoute>
             } />
             <Route path="reglas" element={

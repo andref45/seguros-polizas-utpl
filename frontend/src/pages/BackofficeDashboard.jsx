@@ -39,9 +39,9 @@ export default function BackofficeDashboard() {
     // Calculate Stats
     const stats = {
         total: claims.length,
-        reportado: claims.filter(c => c.estado === 'Reportado').length,
-        tramite: claims.filter(c => c.estado === 'En_tramite').length,
-        pagado: claims.filter(c => c.estado === 'Pagado').length
+        pendiente: claims.filter(c => c.estado === 'Pendiente').length,
+        aprobado: claims.filter(c => c.estado === 'Aprobado').length,
+        rechazado: claims.filter(c => c.estado === 'Rechazado').length
     }
 
     return (
@@ -69,25 +69,25 @@ export default function BackofficeDashboard() {
                     </div>
                     <div>
                         <p className="text-sm font-medium text-gray-500">Pendientes</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.reportado}</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.pendiente}</p>
                     </div>
                 </div>
                 <div className="card border-l-4 border-l-blue-500 flex items-center p-4">
                     <div className="p-3 rounded-full bg-blue-50 text-blue-600 mr-4">
+                        <FaCheckCircle size={24} />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-500">Aprobados</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.aprobado}</p>
+                    </div>
+                </div>
+                <div className="card border-l-4 border-l-red-500 flex items-center p-4">
+                    <div className="p-3 rounded-full bg-red-50 text-red-600 mr-4">
                         <FaFilter size={24} />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-500">En Trámite</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.tramite}</p>
-                    </div>
-                </div>
-                <div className="card border-l-4 border-l-green-500 flex items-center p-4">
-                    <div className="p-3 rounded-full bg-green-50 text-green-600 mr-4">
-                        <FaMoneyBillWave size={24} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Pagados</p>
-                        <p className="text-2xl font-bold text-gray-900">{stats.pagado}</p>
+                        <p className="text-sm font-medium text-gray-500">Rechazados</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.rechazado}</p>
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@ export default function BackofficeDashboard() {
             {/* Filters & Actions */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 p-4 flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {['Todos', 'Reportado', 'En_tramite', 'Pagado'].map(status => (
+                    {['Todos', 'Pendiente', 'Aprobado', 'Rechazado'].map(status => (
                         <button
                             key={status}
                             onClick={() => setFilter(status)}
@@ -104,7 +104,7 @@ export default function BackofficeDashboard() {
                                 : 'text-gray-500 hover:text-gray-700'
                                 }`}
                         >
-                            {status.replace('_', ' ')}
+                            {status}
                         </button>
                     ))}
                 </div>
@@ -167,11 +167,11 @@ export default function BackofficeDashboard() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border
-                                                ${claim.estado === 'Reportado' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : ''}
-                                                ${claim.estado === 'En_tramite' ? 'bg-blue-50 text-blue-800 border-blue-200' : ''}
-                                                ${claim.estado === 'Pagado' ? 'bg-green-50 text-green-800 border-green-200' : ''}
+                                                ${claim.estado === 'Pendiente' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' : ''}
+                                                ${claim.estado === 'Aprobado' ? 'bg-blue-50 text-blue-800 border-blue-200' : ''}
+                                                ${claim.estado === 'Rechazado' ? 'bg-red-50 text-red-800 border-red-200' : ''}
                                             `}>
-                                                {claim.estado.replace('_', ' ')}
+                                                {claim.estado}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

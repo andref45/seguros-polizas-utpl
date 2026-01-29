@@ -1,0 +1,112 @@
+# Contexto Actual del Proyecto: Seguros Polizas UTPL
+
+Este documento describe el estado actual del proyecto, su arquitectura técnica, modelo de datos y reglas de negocio, diseñado para que un LLM (Large Language Model) entienda el contexto completo sin analizar todo el código fuente.
+
+## 1. Resumen del Proyecto
+El sistema "Seguros Pólizas UTPL" es una aplicación web para la gestión automatizada de seguros de vida y accidentes para estudiantes y empleados de la Universidad Técnica Particular de Loja (UTPL). El objetivo es reemplazar procesos manuales (Excel/Correo) con una plataforma centralizada que maneje pólizas, pagos (con reglas de copago) y reporte de siniestros.
+
+## 2. Arquitectura Técnica (Tech Stack)
+
+### Backend
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Lenguaje**: JavaScript (ES Modules `type: module`)
+- **Base de Datos & Auth**: Supabase (PostgreSQL + GoTrue)
+- **Seguridad**: Helmet, CORS, Express-Validator, JWT (jsonwebtoken)
+- **Logs**: Winston
+- **Manejo de Archivos**: Multer (para evidencias de siniestros y facturas)
+- **Estructura**: Arquitectura por capas (Routes -> Controllers -> Services -> DAO -> Database).
+
+### Frontend
+- **Framework**: React (Vite)
+- **Lenguaje**: JavaScript/JSX
+- **Estilos**: TailwindCSS
+- **Estado/Formuarios**: React Hook Form
+- **Roteo**: React Router DOM (v6)
+- **Cliente HTTP**: Axios
+
+### Infraestructura / Despliegue
+- **Contenedores**: Docker (docker-compose.yml existente)
+- **Base de Datos**: PostgreSQL alojado en Supabase.
+- **Entorno Local**: Scripts de `npm run dev` (Backend) y `vite` (Frontend).
+
+## 3. Modelo de Datos (Database Schema)
+
+El esquema de base de datos (`setup_full.sql`) está normalizado y utiliza características avanzadas de PostgreSQL.
+
+### Tablas Principales
+1.  **`usuarios`**:
+    - Vinculado a `auth.users` de Supabase.
+    - Roles: `estudiante`, `empleado` (campo `tipo_usuario`).
+    - Atributos: cédula, nombres, fecha_nacimiento.
+
+2.  **`vigencias`** (Años Fiscales):
+    - Controla periodos contables (e.g., 2026).
+    - Estado: `abierto` / `cerrado`. Bloquea la creación de pólizas fuera de vigencia.
+
+3.  **`copagos_config`**:
+    - Define reglas de distribución de costos.
+    - Ejemplos: '70/30' (30% empleado, 70% institución), '65/35'.
+
+4.  **`tipos_poliza`**:
+    - Catálogo de productos (e.g., 'Básica', 'Premium').
+    - Define coberturas máximas y primas base.
+
+5.  **`polizas`**:
+    - Núcleo del sistema. Vincula Usuario + Tipo Póliza + Vigencia + Copago.
+    - Estado: `activa`, `vencida`, `cancelada`.
+    - Fechas de inicio/fin estrictas.
+
+6.  **`pagos`**:
+    - Registro de obligaciones mensuales.
+    - `estado_temporalidad`: 'ORDINARIO' vs 'EXTEMPORANEO' (regla del día 5).
+    - Split de montos: `monto_empleado` vs `monto_institucion` calculado automáticamente.
+
+7.  **`siniestros`**:
+    - Reclamos de seguros.
+    - Estados: `Reportado` -> `En_tramite` -> `Pagado`.
+    - Requiere documentos obligatorios (Cédula, Partida Defunción).
+    - SLA de 15 días (regla de negocio).
+
+8.  **`documentos` y `documentos_financieros`**:
+    - Almacenamiento de URLs de evidencias (Storage) y facturas.
+
+### Seguridad en BD (RLS)
+- Row Level Security activado.
+- Políticas: Usuarios solo ven/editan sus propios datos. Admins (definidos por rol) tienen acceso global.
+
+## 4. Reglas de Negocio Clave
+
+### A. Gestión de Pólizas
+- **Vigencia**: No se pueden crear pólizas en una vigencia cerrada.
+- **Renovación**: Anual, alineada al periodo académico/fiscal.
+
+### B. Gestión de Pagos
+- **Corte de Nómina**: Día 15 de cada mes se genera reporte de descuentos.
+- **Mora**: Pagos después del día 5 son 'EXTEMPORANEO'.
+- **Cálculo de Copago**: `Total = (Prima * %Empleado) + Copago Fijo`.
+
+### C. Siniestros
+- **Elegibilidad**: Póliza debe estar 'activa' y pagos 'al día' (sin deuda pendiente).
+- **Flujo**:
+    1. Usuario reporta (Datos básicos: Cédula fallecido, Fecha, Causa).
+    2. Usuario sube documentos obligatorios (Cédula, Partida Defunción, Posesión Efectiva).
+    3. Admin revisa y aprueba (Estado 'En_tramite').
+    4. Aseguradora liquida (SLA 15 días).
+    5. Pago final y cierre (Estado 'Pagado').
+- **Restricción 60 días**: Reportes después de 60 días de la defunción requieren flujo especial (probablemente rechazo o gestión manual).
+
+## 5. Disparidades y Notas de Desarrollo
+- **Documentación de Entrevista (`ReunionUltima.txt`)**:
+    - Menciona procesos manuales actuales en Excel que el sistema debe reemplazar.
+    - Enfatiza la necesidad de reportes flexibles (filtros por fecha, tipo usuario).
+    - Menciona seguros masivos de estudiantes (posesión efectiva necesaria).
+- **Arquitectura (`Notion.txt`)**:
+    - Define reglas RN001 a RN011 que deben reflejarse en el código (Validación de fechas, Single Session, etc.).
+    - El código actual tiene tablas `auditorias` lo que cumple con requisitos de traza.
+
+## 6. Relación con Documentos de Arquitectura
+- **`1BimArquitecturaF.pdf`**: Se asume contiene los diagramas UML (Clases, Secuencia) que la estructura de base de datos (`schema.sql`) respeta fielmente.
+- **`Notion.txt`**: Es la fuente de la "Lógica de Negocio" implementada en los Services y Constraints de Base de Datos.
+
+Este archivo `contextoactual.txt` sirve como 'Brain Dump' del estado del arte del proyecto para facilitar la continuidad del desarrollo.
