@@ -8,6 +8,16 @@ class SiniestroDAO {
             auth: { autoRefreshToken: false, persistSession: false }
         })
 
+        // [DIAGNOSTIC] Log the ROLE of the used key
+        try {
+            if (process.env.SUPABASE_SERVICE_KEY) {
+                const payload = JSON.parse(Buffer.from(process.env.SUPABASE_SERVICE_KEY.split('.')[1], 'base64').toString())
+                console.log('DIAGNOSTIC - Used Key Role:', payload.role) // Should be 'service_role'
+            } else {
+                console.error('DIAGNOSTIC - Key is MISSING')
+            }
+        } catch (e) { console.error('DIAGNOSTIC - Failed to decode key:', e.message) }
+
         const { data: siniestro, error } = await adminSb
             .from('siniestros')
             .insert(data)
